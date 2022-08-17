@@ -61,7 +61,7 @@ class SteamAccountAPI:
         )
         return True if response == 'true' else False
 
-    async def get_profile_info(self) -> ProfileInfo:
+    async def get_current_profile_info(self) -> ProfileInfo:
         """
         Getting profile info.
         """
@@ -109,7 +109,7 @@ class SteamAccountAPI:
             response_model=ProfileInfoResponse,
         )
 
-    async def get_privacy(self) -> PrivacyInfo:
+    async def get_current_privacy(self) -> PrivacyInfo:
         """
         Getting privacy settings.
         """

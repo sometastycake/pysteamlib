@@ -6,6 +6,7 @@ from core.config import config
 
 
 class AntigateCaptchaSolver(Session):
+    """antigate.com"""
 
     def __init__(self, link: str):
         super().__init__()
