@@ -42,6 +42,12 @@ class Steam(Session):
         self.password = password
         self.storage = storage(self.login)
 
+    async def sessionid(self) -> str:
+        """
+        Sessionid cookie.
+        """
+        return (await self.storage.get())['sessionid']
+
     async def request(
             self,
             url: str,
