@@ -1,2 +1,6 @@
 class NotFoundSteamid(Exception):
     ...
+
+
+class ErrorSetProfileInfo(Exception):
+    ...
