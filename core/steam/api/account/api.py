@@ -6,7 +6,7 @@ from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
 from steam.api.account.enums import Language
 from steam.api.account.errors import NotFoundSteamid
-from steam.api.account.schemas import ProfileInfo, ProfileInfoResponse
+from steam.api.account.schemas import PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 from steam.steam import Steam
 
 
@@ -59,8 +59,7 @@ class SteamAccountAPI:
         response = await self.steam.request(
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
             headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,'
-                          'image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
         )
         page: HtmlElement = document_fromstring(response)
@@ -76,7 +75,7 @@ class SteamAccountAPI:
             hide_profile_awards=info['ProfilePreferences']['hide_profile_awards'],
         )
 
-    async def set_profile_info(self, info: ProfileInfo) -> None:
+    async def set_profile_info(self, info: ProfileInfo) -> ProfileInfoResponse:
         data = FormData(
             fields=[
                 ('sessionID', await self.steam.sessionid()),
@@ -87,7 +86,7 @@ class SteamAccountAPI:
                 ('json', '1'),
             ],
         )
-        response: ProfileInfoResponse = await self.steam.request(
+        return await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/',
             data=data,
@@ -98,4 +97,34 @@ class SteamAccountAPI:
             },
             response_model=ProfileInfoResponse,
         )
-        response.check_response()
+
+    async def get_privacy(self) -> PrivacyInfo:
+        response = await self.steam.request(
+            url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
+            headers={
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+            },
+        )
+        page: HtmlElement = document_fromstring(response)
+        info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
+        return PrivacyInfo(**info['Privacy'])
+
+    async def set_privacy(self, info: PrivacyInfo) -> PrivacyResponse:
+        data = FormData(
+            fields=[
+                ('sessionid', await self.steam.sessionid()),
+                ('Privacy', info.PrivacySettings.json()),
+                ('eCommentPermission', info.eCommentPermission.value),
+            ],
+        )
+        return await self.steam.request(
+            method='POST',
+            url=f'https://steamcommunity.com/profiles/{await self.steamid}/ajaxsetprivacy/',
+            data=data,
+            headers={
+                'Accept': 'application/json, text/plain, */*',
+                'Origin': 'https://steamcommunity.com',
+                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings'
+            },
+            response_model=PrivacyResponse,
+        )

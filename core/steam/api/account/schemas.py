@@ -1,7 +1,26 @@
 from typing import Optional
 
 from pydantic import BaseModel
-from steam.api.account.errors import ErrorSetProfileInfo
+from steam.api.account.enums import CommentPermissionLevel, PrivacyLevel
+
+
+class PrivacySettings(BaseModel):
+    PrivacyProfile: PrivacyLevel
+    PrivacyInventory: PrivacyLevel
+    PrivacyInventoryGifts: PrivacyLevel
+    PrivacyOwnedGames: PrivacyLevel
+    PrivacyPlaytime: PrivacyLevel
+    PrivacyFriendsList: PrivacyLevel
+
+
+class PrivacyInfo(BaseModel):
+    PrivacySettings: PrivacySettings
+    eCommentPermission: CommentPermissionLevel
+
+
+class PrivacyResponse(BaseModel):
+    success: int
+    Privacy: PrivacyInfo
 
 
 class ProfileInfo(BaseModel):
@@ -24,7 +43,3 @@ class ProfileInfo(BaseModel):
 class ProfileInfoResponse(BaseModel):
     success: int
     errmsg: str
-
-    def check_response(self) -> None:
-        if self.errmsg:
-            raise ErrorSetProfileInfo(self.errmsg)
