@@ -4,9 +4,9 @@ from typing import Optional
 
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
-from steam.api.enums import Language
-from steam.api.errors import NotFoundSteamid
-from steam.api.schemas import ProfileInfo, ProfileInfoResponse
+from steam.api.account.enums import Language
+from steam.api.account.errors import NotFoundSteamid
+from steam.api.account.schemas import ProfileInfo, ProfileInfoResponse
 from steam.steam import Steam
 
 

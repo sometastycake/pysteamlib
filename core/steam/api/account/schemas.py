@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pydantic import BaseModel
-from steam.api.errors import ErrorSetProfileInfo
+from steam.api.account.errors import ErrorSetProfileInfo
 
 
 class ProfileInfo(BaseModel):
