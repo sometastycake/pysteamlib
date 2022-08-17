@@ -23,6 +23,9 @@ class SteamAccountAPI:
         return self._steamid
 
     async def get_steamid(self) -> int:
+        """
+        Getting steamid (digital id of account).
+        """
         response = await self.steam.request(
             url='https://steamcommunity.com/',
             headers={
@@ -39,6 +42,9 @@ class SteamAccountAPI:
         return int(steamid.group(1))
 
     async def change_account_language(self, language: Language) -> bool:
+        """
+        Changing account language.
+        """
         response = await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/actions/SetLanguage/',
@@ -56,6 +62,9 @@ class SteamAccountAPI:
         return True if response == 'true' else False
 
     async def get_profile_info(self) -> ProfileInfo:
+        """
+        Getting profile info.
+        """
         response = await self.steam.request(
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
             headers={
@@ -76,20 +85,22 @@ class SteamAccountAPI:
         )
 
     async def set_profile_info(self, info: ProfileInfo) -> ProfileInfoResponse:
-        data = FormData(
-            fields=[
-                ('sessionID', await self.steam.sessionid()),
-                ('type', 'profileSave'),
-                *list(info),
-                ('type', 'profileSave'),
-                ('sessionID', await self.steam.sessionid()),
-                ('json', '1'),
-            ],
-        )
+        """
+        Setting profile info.
+        """
         return await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/',
-            data=data,
+            data=FormData(
+                fields=[
+                    ('sessionID', await self.steam.sessionid()),
+                    ('type', 'profileSave'),
+                    *list(info),
+                    ('type', 'profileSave'),
+                    ('sessionID', await self.steam.sessionid()),
+                    ('json', '1'),
+                ],
+            ),
             headers={
                 'Accept': 'application/json, text/plain, */*',
                 'Origin': 'https://steamcommunity.com',
@@ -99,6 +110,9 @@ class SteamAccountAPI:
         )
 
     async def get_privacy(self) -> PrivacyInfo:
+        """
+        Getting privacy settings.
+        """
         response = await self.steam.request(
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
             headers={
@@ -109,22 +123,24 @@ class SteamAccountAPI:
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
         return PrivacyInfo(**info['Privacy'])
 
-    async def set_privacy(self, info: PrivacyInfo) -> PrivacyResponse:
-        data = FormData(
-            fields=[
-                ('sessionid', await self.steam.sessionid()),
-                ('Privacy', info.PrivacySettings.json()),
-                ('eCommentPermission', info.eCommentPermission.value),
-            ],
-        )
+    async def set_privacy(self, settings: PrivacyInfo) -> PrivacyResponse:
+        """
+        Privacy settings.
+        """
         return await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/ajaxsetprivacy/',
-            data=data,
+            data=FormData(
+                fields=[
+                    ('sessionid', await self.steam.sessionid()),
+                    ('Privacy', settings.PrivacySettings.json()),
+                    ('eCommentPermission', settings.eCommentPermission.value),
+                ],
+            ),
             headers={
                 'Accept': 'application/json, text/plain, */*',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings'
+                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings',
             },
             response_model=PrivacyResponse,
         )
