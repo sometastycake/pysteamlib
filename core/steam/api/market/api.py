@@ -1,3 +1,4 @@
+from steam.api.market.schemas import PriceHistoryResponse
 from steam.steam import Steam
 
 
@@ -15,3 +16,16 @@ class SteamMarketApi:
             },
         )
         return 'The Market is unavailable for the following reason(s):' not in response
+
+    async def price_history(self, appid: str, market_hash_name) -> PriceHistoryResponse:
+        return await self.steam.request(
+            url='https://steamcommunity.com/market/pricehistory/',
+            params={
+                'country': 'US',
+                'currency': '1',
+                'appid': appid,
+                'market_hash_name': market_hash_name,
+            },
+            response_model=PriceHistoryResponse,
+            raise_for_status=False,
+        )
