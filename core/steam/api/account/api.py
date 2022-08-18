@@ -242,3 +242,18 @@ class SteamAccountAPI:
             },
             response_model=AvatarResponse,
         )
+
+    async def get_balance(self) -> int:
+        """
+        Get balance.
+        """
+        response = await self.steam.request(
+            url=f'https://steamcommunity.com/profiles/{await self.steamid}/',
+            headers={
+                'Accept': '*/*',
+                'Origin': 'https://steamcommunity.com',
+            },
+        )
+        page: HtmlElement = document_fromstring(response)
+        balance = page.get_element_by_id('header_wallet_balance')
+        return int(re.search('(\d+)', balance.text).group(1))
