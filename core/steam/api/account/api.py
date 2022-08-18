@@ -8,6 +8,7 @@ from steam.api.account.enums import Language
 from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
 from steam.api.account.schemas import PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 from steam.steam import Steam
+from yarl import URL
 
 
 class SteamAccountAPI:
@@ -189,3 +190,28 @@ class SteamAccountAPI:
         page: HtmlElement = document_fromstring(response)
         key = page.cssselect('#bodyContents_ex > p:nth-child(2)')[0].text
         return key[key.index(' ') + 1:]
+
+    async def register_tradelink(self) -> str:
+        """
+        Register tradelink.
+        """
+        token = await self.steam.request(
+            method='POST',
+            url=f'https://steamcommunity.com/profiles/{await self.steamid}/tradeoffers/newtradeurl',
+            data={
+                'sessionid': await self.steam.sessionid(),
+            },
+            headers={
+                'Accept': '*/*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': 'https://steamcommunity.com',
+                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/tradeoffers/privacy',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        )
+
+        params = {
+            'partner': await self.steamid - 76561197960265728,
+            'token': token.replace('"', ''),
+        }
+        return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))
