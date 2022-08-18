@@ -43,3 +43,21 @@ class ProfileInfo(BaseModel):
 class ProfileInfoResponse(BaseModel):
     success: int
     errmsg: str
+
+
+class Images(BaseModel):
+    standart: str
+    full: str
+    medium: str
+
+    class Config:
+        fields = {
+            'standart': '0',
+        }
+
+
+class AvatarResponse(BaseModel):
+    success: bool
+    images: Images
+    hash: str
+    message: str

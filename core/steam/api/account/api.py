@@ -2,11 +2,12 @@ import json
 import re
 from typing import Optional
 
+import aiofiles
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
 from steam.api.account.enums import Language
 from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
-from steam.api.account.schemas import PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
+from steam.api.account.schemas import AvatarResponse, PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 from steam.steam import Steam
 from yarl import URL
 
@@ -215,3 +216,29 @@ class SteamAccountAPI:
             'token': token.replace('"', ''),
         }
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))
+
+    async def upload_avatar(self, path_to_avatar: str) -> AvatarResponse:
+        """
+        Upload avatar.
+        """
+        async with aiofiles.open(path_to_avatar, mode='rb') as file:
+            content = await file.read()
+        return await self.steam.request(
+            method='POST',
+            url='https://steamcommunity.com/actions/FileUploader/',
+            data=FormData(
+                fields=[
+                    ('avatar', content),
+                    ('type', 'player_avatar_image'),
+                    ('sId', str(await self.steamid)),
+                    ('sessionid', await self.steam.sessionid()),
+                    ('doSub', '1'),
+                    ('json', '1'),
+                ],
+            ),
+            headers={
+                'Origin': 'https://steamcommunity.com',
+                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/avatar',
+            },
+            response_model=AvatarResponse,
+        )
