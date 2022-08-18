@@ -5,7 +5,7 @@ from typing import Optional
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
 from steam.api.account.enums import Language
-from steam.api.account.errors import NotFoundSteamid
+from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
 from steam.api.account.schemas import PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 from steam.steam import Steam
 
@@ -160,7 +160,32 @@ class SteamAccountAPI:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/'
-                              '537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
             },
         )
+
+    async def register_api_key(self, domain: str) -> str:
+        """
+        Register api key.
+        """
+        response = await self.steam.request(
+            url='https://steamcommunity.com/dev/registerkey',
+            method='POST',
+            data={
+                'domain': domain,
+                'agreeToTerms': 'agreed',
+                'sessionid': await self.steam.sessionid(),
+                'Submit': 'Register',
+            },
+            headers={
+                'Origin': 'https://steamcommunity.com',
+                'Referer': 'https://steamcommunity.com/dev/apikey',
+            },
+        )
+
+        error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
+        if error in response:
+            raise KeyRegistrationError(error)
+
+        page: HtmlElement = document_fromstring(response)
+        key = page.cssselect('#bodyContents_ex > p:nth-child(2)')[0].text
+        return key[key.index(' ') + 1:]
