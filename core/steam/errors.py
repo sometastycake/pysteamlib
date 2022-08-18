@@ -23,5 +23,9 @@ class NotFoundAntigateApiKey(LoginError):
     ...
 
 
+class NotFoundSharedSecret(LoginError):
+    ...
+
+
 class CaptchaGidNotFound(LoginError):
     ...
