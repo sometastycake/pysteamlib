@@ -4,7 +4,6 @@ from typing import Any, Callable, Optional
 
 from aiohttp import ClientResponseError
 from antigate import AntiGateError
-
 from steam.errors import LoginError, WrongCaptcha
 
 

@@ -144,3 +144,23 @@ class SteamAccountAPI:
             },
             response_model=PrivacyResponse,
         )
+
+    async def revoke_api_key(self) -> str:
+        """
+        Revoke api key.
+        """
+        return await self.steam.request(
+            url='https://steamcommunity.com/dev/revokekey',
+            method='POST',
+            data={
+                'Revoke': 'Revoke My Steam Web API Key',
+                'sessionid': await self.steam.sessionid(),
+            },
+            headers={
+                'Origin': 'https://steamcommunity.com',
+                'Referer': 'https://steamcommunity.com/dev/apikey',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/'
+                              '537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
+            },
+        )
