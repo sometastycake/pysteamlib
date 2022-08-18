@@ -163,27 +163,27 @@ class Steam(Session):
         result = await self.do_login(request)
 
         if result.is_credentials_incorrect():
-            raise IncorrectCredentials(login=self.login)
+            raise IncorrectCredentials
 
         if result.captcha_needed:
             self.logger.debug('Captcha needed %s' % self.login)
 
             if not result.captcha_gid:
-                raise CaptchaGidNotFound(login=self.login)
+                raise CaptchaGidNotFound
 
             if not config.antigate_api_key:
-                raise NotFoundAntigateApiKey(login=self.login)
+                raise NotFoundAntigateApiKey
 
             request.captcha_text = await AntigateCaptchaSolver(result.captcha_url).solve()
             request.captchagid = result.captcha_gid
 
         if result.requires_twofactor:
             if not self.shared_secret:
-                raise NotFoundSharedSecret(login=self.login)
+                raise NotFoundSharedSecret
             request.twofactorcode = await self.get_steam_guard()
 
         if result.is_wrong_captcha():
-            raise WrongCaptcha(login=self.login)
+            raise WrongCaptcha
 
         return result.success
 
@@ -199,7 +199,7 @@ class Steam(Session):
 
         keys = await self.getrsakey()
         if not keys.success:
-            raise GetRsaError(login=self.login)
+            raise GetRsaError
 
         await self.handle_do_login_request(
             request=LoginRequest(
