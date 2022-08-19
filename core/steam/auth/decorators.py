@@ -4,7 +4,7 @@ from typing import Any, Callable, Optional
 
 from aiohttp import ClientResponseError
 from antigate import AntiGateError
-from steam.errors import LoginError, WrongCaptcha
+from steam.auth.exceptions import LoginError, WrongCaptcha
 
 
 def repeat_login(retry: int, timeout: int = 3) -> Callable:

@@ -1,0 +1,245 @@
+import re
+from logging import getLogger
+from typing import Dict, Optional
+
+from aiocache import cached
+from lxml.html import HtmlElement, document_fromstring
+from steam.api.account.api import SteamAccountAPI
+from steam.api.market.schemas import ApplistResponse
+from steam.api.public.api import SteamPublicAPI
+from steam.api.store.purchase.errors import NotEnoughFundsForGame, NotSpecifiedGame
+from steam.api.store.purchase.schemas import (
+    FinalizeTransactionResponse,
+    FinalPriceRequest,
+    FinalPriceResponse,
+    PurshaseTransactionRequest,
+    PurshaseTransactionResponse,
+    TransactionStatusResponse,
+)
+from steam.auth.steam import Steam
+from steam.errors import check_error
+
+
+class PurchaseGame:
+
+    def __init__(self, steam: Steam, game: Optional[str] = None, appid: Optional[int] = None):
+        self.game = game
+        self.appid = appid
+        self.steam = steam
+        self.public_api = SteamPublicAPI()
+        self.account_api = SteamAccountAPI(steam)
+        self.logger = getLogger(__name__)
+
+    @cached(ttl=30)
+    async def apps(self) -> ApplistResponse:
+        """
+        Get all appid.
+
+        :return: ApplistResponse.
+        """
+        return await self.public_api.get_app_list()
+
+    @cached(ttl=30)
+    async def game_page(self) -> HtmlElement:
+        """
+        Get game page.
+
+        :return: Parsed html page.
+        """
+        response = await self.steam.request(
+            url=f'https://store.steampowered.com/app/{self.appid}',
+        )
+        return document_fromstring(response)
+
+    async def get_game_by_appid(self) -> str:
+        """
+        Get game by appid.
+
+        :return: Game name.
+        """
+        page = await self.game_page()
+        return page.get_element_by_id('appHubAppName').text
+
+    async def get_game_cost(self) -> int:
+        """
+        Get game cost.
+
+        :return: Game cost.
+        """
+        page = await self.game_page()
+        cost = page.cssselect('div[id*="game_area_purchase_section_add_to_cart_"] .game_purchase_price')
+        return int(re.search('(\d+)', cost[0].text).group(1))
+
+    async def check_balance(self) -> None:
+        """
+        Check balance.
+
+        :return: None.
+        """
+        account_balance = await self.account_api.get_balance()
+        game_cost = await self.get_game_cost()
+        if account_balance < game_cost:
+            raise NotEnoughFundsForGame(f'Not enough balance to buy "{self.game}"')
+
+    async def get_data_for_cart(self) -> Dict:
+        """
+        Get data for cart.
+
+        :return: Data for game adding to cart.
+        """
+        page = await self.game_page()
+        result = {}
+        for param in ('snr', 'originating_snr', 'action', 'sessionid', 'subid'):
+            result[param] = page.cssselect(f'input[name="{param}"]')[0].attrib['value']
+        return result
+
+    async def add_to_cart(self) -> int:
+        """
+        Add to cart.
+
+        :return: Cart number.
+        """
+        response = await self.steam.request(
+            method='POST',
+            url='https://store.steampowered.com/cart/',
+            data=await self.get_data_for_cart(),
+            headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Origin': 'https://store.steampowered.com',
+                'Referer': f'https://store.steampowered.com/app/{self.appid}/{self.game}/',
+            }
+        )
+        page: HtmlElement = document_fromstring(response)
+        return int(page.cssselect('.cart_area_body input[name="cart"]')[0].attrib['value'])
+
+    async def init_transaction(self, request: PurshaseTransactionRequest) -> PurshaseTransactionResponse:
+        """
+        Init purshase transaction.
+
+        :return: Transaction data.
+        """
+        response: PurshaseTransactionResponse = await self.steam.request(
+            method='POST',
+            url='https://store.steampowered.com/checkout/inittransaction/',
+            data=request.dict(),
+            headers={
+                'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': 'https://store.steampowered.com',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Prototype-Version:': '1.7',
+            },
+            response_model=PurshaseTransactionResponse,
+            callback=check_error,
+        )
+        self.logger.debug(f'Successfull init transaction game = "{self.game}"')
+        return response
+
+    async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
+        """
+        Finalize transaction.
+
+        :return: Finalize transaction status.
+        """
+        response: FinalizeTransactionResponse = await self.steam.request(
+            method='POST',
+            url='https://store.steampowered.com/checkout/finalizetransaction/',
+            data={
+                'transid': transid,
+                'CardCVV2': '',
+            },
+            headers={
+                'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': 'https://store.steampowered.com',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Prototype-Version:': '1.7',
+                'Referer': 'https://store.steampowered.com/checkout/?purchasetype=self',
+            },
+            response_model=FinalizeTransactionResponse,
+            callback=check_error,
+        )
+        self.logger.debug(f'Successful finalize transaction game = "{self.game}"')
+        return response
+
+    async def transaction_status(self, transid: str) -> TransactionStatusResponse:
+        """
+        Check transaction status.
+
+        :return: Transaction status.
+        """
+        response: TransactionStatusResponse = await self.steam.request(
+            method='POST',
+            url='https://store.steampowered.com/checkout/transactionstatus/',
+            data={
+                'count': '1',
+                'transid': transid,
+            },
+            headers={
+                'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': 'https://store.steampowered.com',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-Prototype-Version:': '1.7',
+            },
+            response_model=TransactionStatusResponse,
+            callback=check_error,
+        )
+        self.logger.debug(f'Successful transaction checking game = "{self.game}"')
+        return response
+
+    async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
+        """
+        Steam request "get_final_price".
+
+        :return: Final price status.
+        """
+        return await self.steam.request(
+            url='https://store.steampowered.com/checkout/getfinalprice/',
+            method='GET',
+            params=request.dict(),
+            headers={
+                'Referer': 'https://store.steampowered.com/checkout/?purchasetype=self',
+                'X-Prototype-Version': '1.7',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
+            },
+            response_model=FinalPriceResponse,
+            callback=check_error,
+        )
+
+    async def purchase(self) -> None:
+        """
+        Purshase game.
+        """
+        self.logger.debug(f'Game purchase "{self.game}"')
+
+        if not self.game and not self.appid:
+            raise NotSpecifiedGame('Not specified game')
+
+        if not self.appid:
+            self.appid = (await self.apps()).get_appid_by_name(self.game)
+
+        if not self.game:
+            self.game = await self.get_game_by_appid()
+
+        await self.check_balance()
+        self.logger.debug(f'Enough balance to buy "{self.game}"')
+
+        cart_number = await self.add_to_cart()
+        transaction = await self.init_transaction(
+            request=PurshaseTransactionRequest(
+                gidShoppingCart=cart_number,
+                sessionid=await self.steam.sessionid(),
+            )
+        )
+        await self.final_price(
+            request=FinalPriceRequest(
+                cart=cart_number,
+                transid=transaction.transid,
+            ),
+        )
+        await self.finalize_transaction(transaction.transid)
+        await self.transaction_status(transaction.transid)
+
+        self.logger.debug(f'Successful "{self.game}" purchase')

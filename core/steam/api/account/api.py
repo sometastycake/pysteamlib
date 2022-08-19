@@ -8,7 +8,7 @@ from lxml.html import HtmlElement, document_fromstring
 from steam.api.account.enums import Language
 from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
 from steam.api.account.schemas import AvatarResponse, PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
-from steam.steam import Steam
+from steam.auth.steam import Steam
 from yarl import URL
 
 
@@ -248,7 +248,7 @@ class SteamAccountAPI:
         Get balance.
         """
         response = await self.steam.request(
-            url=f'https://steamcommunity.com/profiles/{await self.steamid}/',
+            url=f'https://store.steampowered.com/account/store_transactions/',
             headers={
                 'Accept': '*/*',
                 'Origin': 'https://steamcommunity.com',

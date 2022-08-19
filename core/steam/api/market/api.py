@@ -1,5 +1,5 @@
 from steam.api.market.schemas import PriceHistoryResponse
-from steam.steam import Steam
+from steam.auth.steam import Steam
 
 
 class SteamMarketApi:

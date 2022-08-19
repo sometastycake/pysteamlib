@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import binascii
 import hashlib
@@ -6,24 +7,25 @@ import math
 import time
 from logging import getLogger
 from struct import pack
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Callable, Optional, Type, TypeVar
 
 from config import config
 from pydantic import BaseModel
 from session import Session
 from steam.api.public.api import SteamPublicAPI
-from steam.captcha import AntigateCaptchaSolver
-from steam.decorators import repeat_login
-
-from core.steam.errors import (
+from steam.auth.captcha import AntigateCaptchaSolver
+from steam.auth.decorators import repeat_login
+from steam.auth.exceptions import (
     CaptchaGidNotFound,
     GetRsaError,
     IncorrectCredentials,
+    LoginError,
     NotFoundAntigateApiKey,
     NotFoundSharedSecret,
     WrongCaptcha,
 )
-from core.steam.schemas import LoginRequest, LoginResult, SteamAuthorizationStatus, SteamRSA
+from steam.auth.schemas import LoginRequest, LoginResult, SteamAuthorizationStatus, SteamRSA
+
 from core.steam.storage.abstract import CookieStorage
 
 StorageType = TypeVar('StorageType', bound=CookieStorage)
@@ -73,7 +75,7 @@ class Steam(Session):
             url: str,
             method: str = 'GET',
             response_model: Optional[Type[ResponseModelType]] = None,
-            only_content: bool = True,
+            callback: Optional[Callable] = None,
             **kwargs: Any,
     ) -> Any:
         """
@@ -85,11 +87,16 @@ class Steam(Session):
             cookies=await self.storage.get(),
             **kwargs,
         )
-        if only_content:
-            if response_model is not None:
-                return response_model.parse_raw(await response.text())
-            return await response.text()
-        return response
+        if response_model is not None:
+            result = response_model.parse_raw(await response.text())
+        else:
+            result = await response.text()
+        if callback:
+            if asyncio.iscoroutinefunction(callback):
+                return await callback(result)
+            return callback(result)
+        else:
+            return result
 
     async def is_authorized(self) -> bool:
         """
@@ -201,7 +208,7 @@ class Steam(Session):
         if not keys.success:
             raise GetRsaError
 
-        await self.handle_do_login_request(
+        result = await self.handle_do_login_request(
             request=LoginRequest(
                 donotcache=str(int(time.time())),
                 password=str(keys.encrypt_password(self.password), 'utf8'),
@@ -211,4 +218,6 @@ class Steam(Session):
                 rsatimestamp=str(keys.timestamp),
             ),
         )
+        if not result:
+            raise LoginError
         await self.storage.set(self.get_cookies('steamcommunity.com'))

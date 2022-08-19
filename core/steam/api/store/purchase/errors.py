@@ -1,0 +1,6 @@
+class NotEnoughFundsForGame(Exception):
+    ...
+
+
+class NotSpecifiedGame(Exception):
+    ...
