@@ -1,13 +1,11 @@
 import re
-from logging import getLogger
-from typing import Dict, Optional
+from typing import Dict
 
 from aiocache import cached
 from lxml.html import HtmlElement, document_fromstring
 from steam.api.account.api import SteamAccountAPI
-from steam.api.market.schemas import ApplistResponse
 from steam.api.public.api import SteamPublicAPI
-from steam.api.store.purchase.errors import NotEnoughFundsForGame, NotSpecifiedGame
+from steam.api.store.purchase.errors import NotEnoughFundsForGame
 from steam.api.store.purchase.schemas import (
     FinalizeTransactionResponse,
     FinalPriceRequest,
@@ -22,22 +20,12 @@ from steam.errors import check_steam_error
 
 class PurchaseGame:
 
-    def __init__(self, steam: Steam, game: Optional[str] = None, appid: Optional[int] = None):
+    def __init__(self, steam: Steam, game: str, appid: int):
         self.game = game
         self.appid = appid
         self.steam = steam
         self.public_api = SteamPublicAPI()
         self.account_api = SteamAccountAPI(steam)
-        self.logger = getLogger(__name__)
-
-    @cached(ttl=30)
-    async def apps(self) -> ApplistResponse:
-        """
-        Get all appid.
-
-        :return: ApplistResponse.
-        """
-        return await self.public_api.get_app_list()
 
     @cached(ttl=30)
     async def game_page(self) -> HtmlElement:
@@ -50,15 +38,6 @@ class PurchaseGame:
             url=f'https://store.steampowered.com/app/{self.appid}',
         )
         return document_fromstring(response)
-
-    async def get_game_by_appid(self) -> str:
-        """
-        Get game by appid.
-
-        :return: Game name.
-        """
-        page = await self.game_page()
-        return page.get_element_by_id('appHubAppName').text
 
     async def get_game_cost(self) -> int:
         """
@@ -95,7 +74,7 @@ class PurchaseGame:
 
     async def add_to_cart(self) -> int:
         """
-        Add to cart.
+        Add game to cart.
 
         :return: Cart number.
         """
@@ -118,7 +97,7 @@ class PurchaseGame:
 
         :return: Transaction data.
         """
-        response: PurshaseTransactionResponse = await self.steam.request(
+        return await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/inittransaction/',
             data=request.dict(),
@@ -132,8 +111,6 @@ class PurchaseGame:
             response_model=PurshaseTransactionResponse,
             callback=check_steam_error,
         )
-        self.logger.debug(f'Successfull init transaction game = "{self.game}"')
-        return response
 
     async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
         """
@@ -141,7 +118,7 @@ class PurchaseGame:
 
         :return: Finalize transaction status.
         """
-        response: FinalizeTransactionResponse = await self.steam.request(
+        return await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/finalizetransaction/',
             data={
@@ -159,8 +136,6 @@ class PurchaseGame:
             response_model=FinalizeTransactionResponse,
             callback=check_steam_error,
         )
-        self.logger.debug(f'Successful finalize transaction game = "{self.game}"')
-        return response
 
     async def transaction_status(self, transid: str) -> TransactionStatusResponse:
         """
@@ -168,7 +143,7 @@ class PurchaseGame:
 
         :return: Transaction status.
         """
-        response: TransactionStatusResponse = await self.steam.request(
+        return await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/transactionstatus/',
             data={
@@ -185,8 +160,6 @@ class PurchaseGame:
             response_model=TransactionStatusResponse,
             callback=check_steam_error,
         )
-        self.logger.debug(f'Successful transaction checking game = "{self.game}"')
-        return response
 
     async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
         """
@@ -212,19 +185,7 @@ class PurchaseGame:
         """
         Purshase game.
         """
-        self.logger.debug(f'Game purchase "{self.game}"')
-
-        if not self.game and not self.appid:
-            raise NotSpecifiedGame('Not specified game')
-
-        if not self.appid:
-            self.appid = (await self.apps()).get_appid_by_name(self.game)
-
-        if not self.game:
-            self.game = await self.get_game_by_appid()
-
         await self.check_balance()
-        self.logger.debug(f'Enough balance to buy "{self.game}"')
 
         cart_number = await self.add_to_cart()
         transaction = await self.init_transaction(
@@ -241,5 +202,3 @@ class PurchaseGame:
         )
         await self.finalize_transaction(transaction.transid)
         await self.transaction_status(transaction.transid)
-
-        self.logger.debug(f'Successful "{self.game}" purchase')
