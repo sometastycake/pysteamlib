@@ -14,6 +14,7 @@ class CommentPermissionLevel(IntEnum):
 
 
 class Language(Enum):
+    """Steam profile language."""
     schinese = 'schinese'
     tchinese = 'tchinese'
     japanese = 'japanese'

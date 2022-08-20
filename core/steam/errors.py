@@ -133,10 +133,16 @@ errors = {
 BaseSteamResponseType = TypeVar('BaseSteamResponseType', bound=BaseSteamResponse)
 
 
-def check_error(response: BaseSteamResponseType) -> None:
+def check_steam_error(response: BaseSteamResponseType) -> None:
+    """
+    Check steam response status.
+
+    :param response: Steam response status.
+    :return: Steam response.
+    """
     error = response.success
     if error in (1, 22):
         return response
     if error in errors:
-        raise SteamError(errors[error])
+        raise SteamError(f'Steam error: {errors[error]}')
     raise UnknownSteamError(f'Unknown Steam error: {error}')

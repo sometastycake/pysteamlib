@@ -9,6 +9,7 @@ from steam.api.account.enums import Language
 from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
 from steam.api.account.schemas import AvatarResponse, PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 from steam.auth.steam import Steam
+from steam.errors import check_steam_error
 from yarl import URL
 
 
@@ -20,13 +21,20 @@ class SteamAccountAPI:
 
     @property
     async def steamid(self) -> int:
+        """
+        Get steamid.
+
+        :return: steamid.
+        """
         if not self._steamid:
             self._steamid = await self.get_steamid()
         return self._steamid
 
     async def get_steamid(self) -> int:
         """
-        Getting steamid (digital id of account).
+        Get steamid from Steam.
+
+        :return: steamid.
         """
         response = await self.steam.request(
             url='https://steamcommunity.com/',
@@ -40,12 +48,14 @@ class SteamAccountAPI:
             string=response,
         )
         if not steamid:
-            raise NotFoundSteamid
+            raise NotFoundSteamid('Not found steamid')
         return int(steamid.group(1))
 
     async def change_account_language(self, language: Language) -> bool:
         """
-        Changing account language.
+        Change account language.
+
+        :return: Is success.
         """
         response = await self.steam.request(
             method='POST',
@@ -65,7 +75,9 @@ class SteamAccountAPI:
 
     async def get_current_profile_info(self) -> ProfileInfo:
         """
-        Getting profile info.
+        Get profile info.
+
+        :return: Profile info.
         """
         response = await self.steam.request(
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
@@ -88,7 +100,9 @@ class SteamAccountAPI:
 
     async def set_profile_info(self, info: ProfileInfo) -> ProfileInfoResponse:
         """
-        Setting profile info.
+        Set profile info.
+
+        :return: Set profile info status.
         """
         return await self.steam.request(
             method='POST',
@@ -109,11 +123,14 @@ class SteamAccountAPI:
                 'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
             },
             response_model=ProfileInfoResponse,
+            callback=check_steam_error,
         )
 
     async def get_current_privacy(self) -> PrivacyInfo:
         """
-        Getting privacy settings.
+        Get privacy settings.
+
+        :return: Privacy info.
         """
         response = await self.steam.request(
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
@@ -128,6 +145,8 @@ class SteamAccountAPI:
     async def set_privacy(self, settings: PrivacyInfo) -> PrivacyResponse:
         """
         Privacy settings.
+
+        :return: Privacy response.
         """
         return await self.steam.request(
             method='POST',
@@ -145,11 +164,14 @@ class SteamAccountAPI:
                 'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings',
             },
             response_model=PrivacyResponse,
+            callback=check_steam_error,
         )
 
     async def revoke_api_key(self) -> str:
         """
         Revoke api key.
+
+        :return: Result html page.
         """
         return await self.steam.request(
             url='https://steamcommunity.com/dev/revokekey',
@@ -168,6 +190,8 @@ class SteamAccountAPI:
     async def register_api_key(self, domain: str) -> str:
         """
         Register api key.
+
+        :return: API key.
         """
         response = await self.steam.request(
             url='https://steamcommunity.com/dev/registerkey',
@@ -195,6 +219,8 @@ class SteamAccountAPI:
     async def register_tradelink(self) -> str:
         """
         Register tradelink.
+
+        :return: Tradelink.
         """
         token = await self.steam.request(
             method='POST',
@@ -220,6 +246,8 @@ class SteamAccountAPI:
     async def upload_avatar(self, path_to_avatar: str) -> AvatarResponse:
         """
         Upload avatar.
+
+        :return: Upload avatar status.
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
             content = await file.read()
@@ -243,9 +271,11 @@ class SteamAccountAPI:
             response_model=AvatarResponse,
         )
 
-    async def get_balance(self) -> int:
+    async def account_balance(self) -> int:
         """
-        Get balance.
+        Get account balance.
+
+        :return: Account balance.
         """
         response = await self.steam.request(
             url=f'https://store.steampowered.com/account/store_transactions/',

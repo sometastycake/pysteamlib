@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 from steam.api.account.enums import CommentPermissionLevel, PrivacyLevel
+from steam.schemas import BaseSteamResponse
 
 
 class PrivacySettings(BaseModel):
@@ -18,8 +19,7 @@ class PrivacyInfo(BaseModel):
     eCommentPermission: CommentPermissionLevel
 
 
-class PrivacyResponse(BaseModel):
-    success: int
+class PrivacyResponse(BaseSteamResponse):
     Privacy: PrivacyInfo
 
 
@@ -40,8 +40,7 @@ class ProfileInfo(BaseModel):
     hide_profile_awards: str = '0'
 
 
-class ProfileInfoResponse(BaseModel):
-    success: int
+class ProfileInfoResponse(BaseSteamResponse):
     errmsg: str
 
 

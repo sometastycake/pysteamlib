@@ -8,6 +8,11 @@ class SteamMarketApi:
         self.steam = steam
 
     async def is_market_available(self) -> bool:
+        """
+        Is market available.
+
+        :return: Is market available.
+        """
         response = await self.steam.request(
             url='https://steamcommunity.com/market/',
             headers={
@@ -18,6 +23,13 @@ class SteamMarketApi:
         return 'The Market is unavailable for the following reason(s):' not in response
 
     async def price_history(self, appid: str, market_hash_name) -> PriceHistoryResponse:
+        """
+        Price history.
+
+        :param appid: Game appid.
+        :param market_hash_name: Name of item.
+        :return: Price history.
+        """
         return await self.steam.request(
             url='https://steamcommunity.com/market/pricehistory/',
             params={

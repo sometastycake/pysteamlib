@@ -2,13 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 
 
 class Sale(BaseModel):
-    sale: datetime
-    price: Decimal
-    weight: int
+    sale: datetime = Field(description='Date of sale')
+    price: Decimal = Field(description='Sale price')
+    weight: int = Field(description='Amount of sold items')
 
 
 class PriceHistoryResponse(BaseModel):
