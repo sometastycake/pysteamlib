@@ -1,9 +1,4 @@
-from typing import TypeVar
-
-from steam.exceptions import SteamError, UnknownSteamError
-from steam.schemas import BaseSteamResponse
-
-errors = {
+STEAM_ERROR_CODES = {
     1: 'OK',
     2: 'Fail',
     3: 'NoConnection',
@@ -128,21 +123,3 @@ errors = {
     122: 'ParseFailure',
     123: 'NoVerifiedPhone',
 }
-
-
-BaseSteamResponseType = TypeVar('BaseSteamResponseType', bound=BaseSteamResponse)
-
-
-def check_steam_error(response: BaseSteamResponseType) -> None:
-    """
-    Check steam response status.
-
-    :param response: Steam response status.
-    :return: Steam response.
-    """
-    error = response.success
-    if error in (1, 22):
-        return response
-    if error in errors:
-        raise SteamError(f'Steam error: {errors[error]}')
-    raise UnknownSteamError(f'Unknown Steam error: {error}')

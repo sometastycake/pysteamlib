@@ -9,7 +9,7 @@ from steam.api.account.enums import Language
 from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
 from steam.api.account.schemas import AvatarResponse, PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 from steam.auth.steam import Steam
-from steam.errors import check_steam_error
+from steam.callbacks import check_steam_error_from_response
 from yarl import URL
 
 
@@ -123,7 +123,7 @@ class SteamAccountAPI:
                 'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
             },
             response_model=ProfileInfoResponse,
-            callback=check_steam_error,
+            callback=check_steam_error_from_response,
         )
 
     async def get_current_privacy(self) -> PrivacyInfo:
@@ -164,7 +164,7 @@ class SteamAccountAPI:
                 'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings',
             },
             response_model=PrivacyResponse,
-            callback=check_steam_error,
+            callback=check_steam_error_from_response,
         )
 
     async def revoke_api_key(self) -> str:

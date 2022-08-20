@@ -15,7 +15,7 @@ from steam.api.store.purchase.schemas import (
     TransactionStatusResponse,
 )
 from steam.auth.steam import Steam
-from steam.errors import check_steam_error
+from steam.callbacks import check_steam_error_from_response
 
 
 class PurchaseGame:
@@ -109,7 +109,7 @@ class PurchaseGame:
                 'X-Prototype-Version:': '1.7',
             },
             response_model=PurshaseTransactionResponse,
-            callback=check_steam_error,
+            callback=check_steam_error_from_response,
         )
 
     async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
@@ -134,7 +134,7 @@ class PurchaseGame:
                 'Referer': 'https://store.steampowered.com/checkout/?purchasetype=self',
             },
             response_model=FinalizeTransactionResponse,
-            callback=check_steam_error,
+            callback=check_steam_error_from_response,
         )
 
     async def transaction_status(self, transid: str) -> TransactionStatusResponse:
@@ -158,7 +158,7 @@ class PurchaseGame:
                 'X-Prototype-Version:': '1.7',
             },
             response_model=TransactionStatusResponse,
-            callback=check_steam_error,
+            callback=check_steam_error_from_response,
         )
 
     async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
@@ -178,7 +178,7 @@ class PurchaseGame:
                 'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
             },
             response_model=FinalPriceResponse,
-            callback=check_steam_error,
+            callback=check_steam_error_from_response,
         )
 
     async def purchase(self) -> None:
