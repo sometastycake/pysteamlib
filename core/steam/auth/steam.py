@@ -203,12 +203,12 @@ class Steam(Session):
 
         result = await self.handle_do_login_request(
             request=LoginRequest(
-                donotcache=str(int(time.time())),
+                donotcache=int(time.time()),
                 password=str(keys.encrypt_password(self.password), 'utf8'),
                 username=self.login,
                 captchagid='-1',
                 captcha_text='',
-                rsatimestamp=str(keys.timestamp),
+                rsatimestamp=keys.timestamp,
             ),
         )
         if not result:

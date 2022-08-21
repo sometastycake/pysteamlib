@@ -60,7 +60,7 @@ class SteamAuthorizationStatus(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    donotcache: str
+    donotcache: int
     password: str
     username: str
     twofactorcode: str = Field(default='')
@@ -69,7 +69,7 @@ class LoginRequest(BaseModel):
     captchagid: str
     captcha_text: str
     emailsteamid: str = Field(default='')
-    rsatimestamp: str
+    rsatimestamp: int
     remember_login: str = Field(default='0')
     tokentype: str = Field(default='-1')
     oauth_scope: str = Field(default='read_profile write_profile read_client write_client')
