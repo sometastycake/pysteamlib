@@ -30,3 +30,15 @@ def cancel_offer_handler(response: str) -> None:
         if error in STEAM_ERROR_CODES:
             raise SteamError(error_code=error)
         raise UnknownSteamError
+
+
+def decline_offer_handler(response: str) -> None:
+    """
+    Decline offer handler.
+    """
+    content = json.loads(response)
+    if 'success' in content:
+        error = content['success']
+        if error in STEAM_ERROR_CODES:
+            raise SteamError(error_code=error)
+        raise UnknownSteamError
