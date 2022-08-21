@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Generator, List, Optional
 
 from pydantic import BaseModel
 from steam.api.account.enums import CommentPermissionLevel, PrivacyLevel
@@ -60,3 +60,16 @@ class AvatarResponse(BaseModel):
     images: Images
     hash: str
     message: str
+
+
+class Nickname(BaseModel):
+    newname: str
+    timechanged: str
+
+
+class NicknameHistory(BaseModel):
+    __root__: List[Nickname]
+
+    def __iter__(self) -> Generator[Nickname, None, None]:
+        for nickname in self.__root__:
+            yield nickname

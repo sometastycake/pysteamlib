@@ -5,15 +5,23 @@ from typing import Optional
 import aiofiles
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
+from session import Session
 from steam.api.account.enums import Language
 from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
-from steam.api.account.schemas import AvatarResponse, PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
+from steam.api.account.schemas import (
+    AvatarResponse,
+    NicknameHistory,
+    PrivacyInfo,
+    PrivacyResponse,
+    ProfileInfo,
+    ProfileInfoResponse,
+)
 from steam.auth.steam import Steam
 from steam.callbacks import check_steam_error_from_response
 from yarl import URL
 
 
-class SteamAccountAPI:
+class SteamAccountAPI(Session):
 
     def __init__(self, steam: Steam, steamid: Optional[int] = None):
         self.steam = steam
@@ -29,6 +37,24 @@ class SteamAccountAPI:
         if not self._steamid:
             self._steamid = await self.get_steamid()
         return self._steamid
+
+    @classmethod
+    async def get_nickname_history(cls, steamid: int) -> NicknameHistory:
+        """
+        Get nickname history.
+
+        :return: Nickname history.
+        """
+        response = await cls.session.post(
+            url=f'https://steamcommunity.com/profiles/{steamid}/ajaxaliases/',
+            headers={
+                'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Referer': f'https://steamcommunity.com/profiles/{steamid}/',
+                'Origin': 'https://steamcommunity.com',
+            },
+        )
+        return NicknameHistory.parse_raw(await response.text())
 
     async def get_steamid(self) -> int:
         """
@@ -250,13 +276,13 @@ class SteamAccountAPI:
         :return: Upload avatar status.
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
-            content = await file.read()
+            image = await file.read()
         return await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/actions/FileUploader/',
             data=FormData(
                 fields=[
-                    ('avatar', content),
+                    ('avatar', image),
                     ('type', 'player_avatar_image'),
                     ('sId', str(await self.steamid)),
                     ('sessionid', await self.steam.sessionid()),
