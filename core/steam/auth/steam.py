@@ -5,7 +5,6 @@ import hashlib
 import hmac
 import math
 import time
-from logging import getLogger
 from struct import pack
 from typing import Any, Callable, Optional, Type, TypeVar
 
@@ -57,7 +56,6 @@ class Steam(Session):
         :param shared_secret: Secret for Steam Guard generate.
         """
         super().__init__()
-        self.logger = getLogger(__name__)
         self.login = login
         self.password = password
         self.storage = storage(self.login)
@@ -173,8 +171,6 @@ class Steam(Session):
             raise IncorrectCredentials
 
         if result.captcha_needed:
-            self.logger.debug('Captcha needed %s' % self.login)
-
             if not result.captcha_gid:
                 raise CaptchaGidNotFound
 
@@ -198,10 +194,7 @@ class Steam(Session):
         """
         Login to Steam.
         """
-        self.logger.debug('Login to %s' % self.login)
-
         if await self.is_authorized():
-            self.logger.debug('Account %s already authorized' % self.login)
             return
 
         keys = await self.getrsakey()
