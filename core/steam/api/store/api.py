@@ -20,7 +20,7 @@ class SteamStoreAPI(Session):
             params={
                 'appids': appid,
                 'cc': 'us',
-                'filters': 'price_overview'
+                'filters': 'price_overview',
             },
         )
         content = await response.json()

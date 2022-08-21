@@ -278,7 +278,7 @@ class SteamAccountAPI:
         :return: Account balance.
         """
         response = await self.steam.request(
-            url=f'https://store.steampowered.com/account/store_transactions/',
+            url='https://store.steampowered.com/account/store_transactions/',
             headers={
                 'Accept': '*/*',
                 'Origin': 'https://steamcommunity.com',

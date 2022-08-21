@@ -86,7 +86,7 @@ class PurchaseGame:
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Origin': 'https://store.steampowered.com',
                 'Referer': f'https://store.steampowered.com/app/{self.appid}/{self.game}/',
-            }
+            },
         )
         page: HtmlElement = document_fromstring(response)
         return int(page.cssselect('.cart_area_body input[name="cart"]')[0].attrib['value'])
@@ -192,7 +192,7 @@ class PurchaseGame:
             request=PurshaseTransactionRequest(
                 gidShoppingCart=cart_number,
                 sessionid=await self.steam.sessionid(),
-            )
+            ),
         )
         await self.final_price(
             request=FinalPriceRequest(
