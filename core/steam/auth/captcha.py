@@ -8,10 +8,6 @@ from core.config import config
 class AntigateCaptchaSolver(Session):
     """antigate.com"""
 
-    def __init__(self, link: str):
-        super().__init__()
-        self.link = link
-
     def _solve(self, path_to_file: str) -> str:
         answer = AntiGate(
             api_key=config.antigate_api_key,
@@ -24,13 +20,13 @@ class AntigateCaptchaSolver(Session):
         )
         return str(answer).replace('&amp;', '&')
 
-    async def get_image(self) -> bytes:
-        async with await self.session.get(self.link) as response:
-            content = response.content
-            return await content.read()
+    @classmethod
+    async def get_image(cls, link: str) -> bytes:
+        response = await cls.session.get(link)
+        return await response.content.read()
 
-    async def solve(self) -> str:
+    async def solve(self, link: str) -> str:
         async with aiofiles.tempfile.NamedTemporaryFile(delete=True) as file:
-            image = await self.get_image()
+            image = await self.get_image(link)
             await file.write(image)
             return self._solve(str(file.name))

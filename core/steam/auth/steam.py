@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import binascii
 import hashlib
@@ -6,14 +5,13 @@ import hmac
 import math
 import time
 from struct import pack
-from typing import Any, Callable, Optional, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar
 
 from config import config
 from pydantic import BaseModel
 from session import Session
 from steam.api.public.api import SteamAPI
 from steam.auth.captcha import AntigateCaptchaSolver
-from steam.auth.decorators import repeat_login
 from steam.auth.exceptions import (
     CaptchaGidNotFound,
     GetRsaError,
@@ -152,37 +150,40 @@ class Steam(Session):
 
         return code
 
-    @repeat_login(retry=3)
-    async def handle_do_login_request(self, request: LoginRequest) -> bool:
+    async def _login(self, request: LoginRequest):
         """
         Authorization.
         """
         result = await self.do_login(request)
+        for _ in range(3):
+            if result.success:
+                return
+            if result.is_credentials_incorrect():
+                raise IncorrectCredentials
 
-        if result.is_credentials_incorrect():
-            raise IncorrectCredentials
+            if result.captcha_needed:
+                if not result.captcha_gid:
+                    raise CaptchaGidNotFound
 
-        if result.captcha_needed:
-            if not result.captcha_gid:
-                raise CaptchaGidNotFound
+                if not config.antigate_api_key:
+                    raise NotFoundAntigateApiKey
 
-            if not config.antigate_api_key:
-                raise NotFoundAntigateApiKey
+                request.captcha_text = await AntigateCaptchaSolver().solve(result.captcha_url)
+                request.captchagid = result.captcha_gid
 
-            request.captcha_text = await AntigateCaptchaSolver(result.captcha_url).solve()
-            request.captchagid = result.captcha_gid
+            elif result.requires_twofactor:
+                if not self.authenticator:
+                    raise NotFoundAuthenticatorData
+                request.twofactorcode = await Steam.get_steam_guard(
+                    shared_secret=self.authenticator.shared_secret,
+                )
 
-        if result.requires_twofactor:
-            if not self.authenticator:
-                raise NotFoundAuthenticatorData
-            request.twofactorcode = await Steam.get_steam_guard(
-                shared_secret=self.authenticator.shared_secret,
-            )
+            result = await self.do_login(request)
 
-        if result.is_wrong_captcha():
-            raise WrongCaptcha
-
-        return result.success
+        if not result.success:
+            if result.is_wrong_captcha():
+                raise WrongCaptcha
+            raise LoginError(result.message)
 
     async def login_to_steam(self) -> None:
         """
@@ -195,16 +196,12 @@ class Steam(Session):
         if not keys.success:
             raise GetRsaError
 
-        result = await self.handle_do_login_request(
-            request=LoginRequest(
-                donotcache=int(time.time()),
-                password=str(keys.encrypt_password(self.password), 'utf8'),
-                username=self.login,
-                captchagid='-1',
-                captcha_text='',
-                rsatimestamp=keys.timestamp,
-            ),
+        request = LoginRequest(
+            donotcache=int(time.time()),
+            password=keys.encrypt_password(self.password),
+            username=self.login,
+            rsatimestamp=keys.timestamp,
         )
-        if not result:
-            raise LoginError
+
+        await self._login(request)
         await self.storage.set(self.get_cookies('steamcommunity.com'))

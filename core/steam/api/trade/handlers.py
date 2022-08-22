@@ -53,7 +53,7 @@ def _accept_offer_response_handler(response: str) -> int:
     content = json.loads(response)
     if 'strError' in content:
         error = SteamOfferError.parse_obj(content)
-        error.determine_error()
+        error.determine_error_code()
         raise UnknownSteamError(content['strError'])
     else:
         return content['tradeid']

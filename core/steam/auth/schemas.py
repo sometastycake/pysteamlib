@@ -16,7 +16,7 @@ class SteamRSA(BaseModel):
     timestamp: Optional[int]
     token_gid: Optional[str]
 
-    def encrypt_password(self, password: str) -> bytes:
+    def encrypt_password(self, password: str) -> str:
         publickey_exp = int(self.publickey_exp, 16)  # type:ignore
         publickey_mod = int(self.publickey_mod, 16)  # type:ignore
         public_key = rsa.PublicKey(
@@ -27,7 +27,7 @@ class SteamRSA(BaseModel):
             message=password.encode('ascii'),
             pub_key=public_key,
         )
-        return base64.b64encode(encrypted_password)
+        return str(base64.b64encode(encrypted_password), 'utf8')
 
 
 class LoginResult(BaseModel):
@@ -70,8 +70,8 @@ class LoginRequest(BaseModel):
     twofactorcode: str = Field(default='')
     emailauth: str = Field(default='')
     loginfriendlyname: str = Field(default='#login_emailauth_friendlyname_mobile')
-    captchagid: str
-    captcha_text: str
+    captchagid: str = '-1'
+    captcha_text: str = ''
     emailsteamid: str = Field(default='')
     rsatimestamp: int
     remember_login: str = Field(default='0')

@@ -80,8 +80,8 @@ class SteamOfferError(BaseModel):
     strError: str
 
     def determine_error_code(self) -> None:
-        error = re.match(
-            pattern=r'There was an error sending your trade offer.  Please try again later. \((\d+)\)',
+        error = re.search(
+            pattern=r'. \((\d+)\)',
             string=self.strError,
         )
         if error and error.groups():
@@ -101,4 +101,3 @@ class SteamOfferError(BaseModel):
         for error in errors:
             if error in self.strError:
                 raise errors[error]
-
