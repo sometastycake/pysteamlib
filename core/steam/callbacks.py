@@ -7,7 +7,7 @@ from steam.schemas import BaseSteamResponse
 BaseSteamResponseType = TypeVar('BaseSteamResponseType', bound=BaseSteamResponse)
 
 
-def check_steam_error_from_response(response: BaseSteamResponseType) -> BaseSteamResponseType:
+def _check_steam_error_from_response(response: BaseSteamResponseType) -> BaseSteamResponseType:
     """
     Check steam response status.
 

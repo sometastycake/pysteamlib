@@ -36,7 +36,7 @@ class Steam(Session):
     """
     Steam authorization class.
     """
-    SteamGuardCodes = [
+    steam_guard_codes = [
         50, 51, 52, 53, 54, 55, 56, 57, 66, 67, 68, 70, 71,
         72, 74, 75, 77, 78, 80, 81, 82, 84, 86, 87, 88, 89,
     ]
@@ -72,7 +72,6 @@ class Steam(Session):
             url: str,
             method: str = 'GET',
             response_model: Optional[Type[ResponseModelType]] = None,
-            callback: Optional[Callable] = None,
             **kwargs: Any,
     ) -> Any:
         """
@@ -85,15 +84,8 @@ class Steam(Session):
             **kwargs,
         )
         if response_model is not None:
-            result = response_model.parse_raw(await response.text())
-        else:
-            result = await response.text()
-        if callback:
-            if asyncio.iscoroutinefunction(callback):
-                return await callback(result)
-            return callback(result)
-        else:
-            return result
+            return response_model.parse_raw(await response.text())
+        return await response.text()
 
     async def is_authorized(self) -> bool:
         """
@@ -155,8 +147,8 @@ class Steam(Session):
 
         code = ''
         for _ in range(5):
-            code += chr(cls.SteamGuardCodes[code_point % len(cls.SteamGuardCodes)])
-            code_point //= len(cls.SteamGuardCodes)
+            code += chr(cls.steam_guard_codes[code_point % len(cls.steam_guard_codes)])
+            code_point //= len(cls.steam_guard_codes)
 
         return code
 

@@ -3,7 +3,7 @@ import re
 from typing import Dict, List
 
 from pydantic import BaseModel
-from steam.api.trade.errors import (
+from steam.api.trade.exceptions import (
     AccountOverflowError,
     ProfileSettingsError,
     SteamServerDownError,
@@ -76,7 +76,7 @@ class SendOfferResponse(BaseModel):
     email_domain: str
 
 
-class SendOfferErrorResponse(BaseModel):
+class SteamOfferError(BaseModel):
     strError: str
 
     def determine_error_code(self) -> None:
@@ -101,4 +101,4 @@ class SendOfferErrorResponse(BaseModel):
         for error in errors:
             if error in self.strError:
                 raise errors[error]
-        self.determine_error_code()
+

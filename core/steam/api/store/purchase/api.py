@@ -3,7 +3,7 @@ from typing import Dict
 
 from aiocache import cached
 from lxml.html import HtmlElement, document_fromstring
-from steam.api.account.api import SteamAccountAPI
+from steam.api.account.api import SteamAccount
 from steam.api.public.api import SteamAPI
 from steam.api.store.purchase.errors import NotEnoughFundsForGame
 from steam.api.store.purchase.schemas import (
@@ -15,7 +15,7 @@ from steam.api.store.purchase.schemas import (
     TransactionStatusResponse,
 )
 from steam.auth.steam import Steam
-from steam.callbacks import check_steam_error_from_response
+from steam.callbacks import _check_steam_error_from_response
 
 
 class PurchaseGame:
@@ -25,7 +25,7 @@ class PurchaseGame:
         self.appid = appid
         self.steam = steam
         self.public_api = SteamAPI()
-        self.account_api = SteamAccountAPI(steam)
+        self.account_api = SteamAccount(steam)
 
     @cached(ttl=30)
     async def game_page(self) -> HtmlElement:
@@ -97,7 +97,7 @@ class PurchaseGame:
 
         :return: Transaction data.
         """
-        return await self.steam.request(
+        response = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/inittransaction/',
             data=request.dict(),
@@ -109,8 +109,8 @@ class PurchaseGame:
                 'X-Prototype-Version:': '1.7',
             },
             response_model=PurshaseTransactionResponse,
-            callback=check_steam_error_from_response,
         )
+        return _check_steam_error_from_response(response)
 
     async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
         """
@@ -118,7 +118,7 @@ class PurchaseGame:
 
         :return: Finalize transaction status.
         """
-        return await self.steam.request(
+        response = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/finalizetransaction/',
             data={
@@ -134,8 +134,8 @@ class PurchaseGame:
                 'Referer': 'https://store.steampowered.com/checkout/?purchasetype=self',
             },
             response_model=FinalizeTransactionResponse,
-            callback=check_steam_error_from_response,
         )
+        return _check_steam_error_from_response(response)
 
     async def transaction_status(self, transid: str) -> TransactionStatusResponse:
         """
@@ -143,7 +143,7 @@ class PurchaseGame:
 
         :return: Transaction status.
         """
-        return await self.steam.request(
+        response = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/transactionstatus/',
             data={
@@ -158,8 +158,8 @@ class PurchaseGame:
                 'X-Prototype-Version:': '1.7',
             },
             response_model=TransactionStatusResponse,
-            callback=check_steam_error_from_response,
         )
+        return _check_steam_error_from_response(response)
 
     async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
         """
@@ -167,7 +167,7 @@ class PurchaseGame:
 
         :return: Final price status.
         """
-        return await self.steam.request(
+        response = await self.steam.request(
             url='https://store.steampowered.com/checkout/getfinalprice/',
             method='GET',
             params=request.dict(),
@@ -178,8 +178,8 @@ class PurchaseGame:
                 'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
             },
             response_model=FinalPriceResponse,
-            callback=check_steam_error_from_response,
         )
+        return _check_steam_error_from_response(response)
 
     async def purchase(self) -> None:
         """

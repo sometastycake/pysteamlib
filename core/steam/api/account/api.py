@@ -17,11 +17,11 @@ from steam.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steam.auth.steam import Steam
-from steam.callbacks import check_steam_error_from_response
+from steam.callbacks import _check_steam_error_from_response
 from yarl import URL
 
 
-class SteamAccountAPI(Session):
+class SteamAccount(Session):
 
     def __init__(self, steam: Steam, steamid: Optional[int] = None):
         self.steam = steam
@@ -130,7 +130,7 @@ class SteamAccountAPI(Session):
 
         :return: Set profile info status.
         """
-        return await self.steam.request(
+        response = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/',
             data=FormData(
@@ -149,8 +149,8 @@ class SteamAccountAPI(Session):
                 'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
             },
             response_model=ProfileInfoResponse,
-            callback=check_steam_error_from_response,
         )
+        return _check_steam_error_from_response(response)
 
     async def get_current_privacy(self) -> PrivacyInfo:
         """
@@ -174,7 +174,7 @@ class SteamAccountAPI(Session):
 
         :return: Privacy response.
         """
-        return await self.steam.request(
+        response = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{await self.steamid}/ajaxsetprivacy/',
             data=FormData(
@@ -190,8 +190,8 @@ class SteamAccountAPI(Session):
                 'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings',
             },
             response_model=PrivacyResponse,
-            callback=check_steam_error_from_response,
         )
+        return _check_steam_error_from_response(response)
 
     async def revoke_api_key(self) -> str:
         """
