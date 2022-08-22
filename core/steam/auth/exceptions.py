@@ -18,7 +18,7 @@ class NotFoundAntigateApiKey(LoginError):
     ...
 
 
-class NotFoundSharedSecret(LoginError):
+class NotFoundAuthenticatorData(LoginError):
     ...
 
 

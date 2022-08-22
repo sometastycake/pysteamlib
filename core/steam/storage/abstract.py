@@ -1,21 +1,5 @@
-"""
-Cookie storage example.
-
-class SimpleStorage(CookieStorage):
-
-    def __init__(self, key: str):
-        super().__init__(key)
-        self.cache = {}
-
-    async def set(self, value: Dict[str, Any]) -> None:
-        self.cache.update({self._key: value})
-
-    async def get(self) -> Dict[str, Any]:
-        return self.cache.get(self._key)
-
-"""
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Dict
 
 
 class CookieStorage(ABC):
@@ -25,10 +9,14 @@ class CookieStorage(ABC):
     def __init__(self, key: str):
         self._key = key
 
+    @property
+    def key(self) -> str:
+        return self._key
+
     @abstractmethod
-    async def set(self, value: Any) -> Any:
+    async def set(self, value: Dict) -> None:
         ...
 
     @abstractmethod
-    async def get(self) -> Any:
+    async def get(self) -> Dict:
         ...

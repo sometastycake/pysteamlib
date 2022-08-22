@@ -70,6 +70,6 @@ class Nickname(BaseModel):
 class NicknameHistory(BaseModel):
     __root__: List[Nickname]
 
-    def __iter__(self) -> Generator[Nickname, None, None]:
+    def __iter__(self) -> Generator[Nickname, None, None]:  # type:ignore
         for nickname in self.__root__:
             yield nickname

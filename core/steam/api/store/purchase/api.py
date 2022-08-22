@@ -4,7 +4,7 @@ from typing import Dict
 from aiocache import cached
 from lxml.html import HtmlElement, document_fromstring
 from steam.api.account.api import SteamAccountAPI
-from steam.api.public.api import SteamPublicAPI
+from steam.api.public.api import SteamAPI
 from steam.api.store.purchase.errors import NotEnoughFundsForGame
 from steam.api.store.purchase.schemas import (
     FinalizeTransactionResponse,
@@ -24,7 +24,7 @@ class PurchaseGame:
         self.game = game
         self.appid = appid
         self.steam = steam
-        self.public_api = SteamPublicAPI()
+        self.public_api = SteamAPI()
         self.account_api = SteamAccountAPI(steam)
 
     @cached(ttl=30)

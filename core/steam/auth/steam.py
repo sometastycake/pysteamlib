@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, Type, TypeVar
 from config import config
 from pydantic import BaseModel
 from session import Session
-from steam.api.public.api import SteamPublicAPI
+from steam.api.public.api import SteamAPI
 from steam.auth.captcha import AntigateCaptchaSolver
 from steam.auth.decorators import repeat_login
 from steam.auth.exceptions import (
@@ -20,10 +20,11 @@ from steam.auth.exceptions import (
     IncorrectCredentials,
     LoginError,
     NotFoundAntigateApiKey,
-    NotFoundSharedSecret,
+    NotFoundAuthenticatorData,
     WrongCaptcha,
 )
-from steam.auth.schemas import LoginRequest, LoginResult, SteamAuthorizationStatus, SteamRSA
+from steam.auth.schemas import AuthenticatorData, LoginRequest, LoginResult, SteamAuthorizationStatus, SteamRSA
+from steam.auth.storage import BaseStorage
 
 from core.steam.storage.abstract import CookieStorage
 
@@ -33,34 +34,32 @@ ResponseModelType = TypeVar('ResponseModelType', bound=BaseModel)
 
 class Steam(Session):
     """
-    Steam Authorization class.
+    Steam authorization class.
     """
-    SGCodes = [
+    SteamGuardCodes = [
         50, 51, 52, 53, 54, 55, 56, 57, 66, 67, 68, 70, 71,
         72, 74, 75, 77, 78, 80, 81, 82, 84, 86, 87, 88, 89,
     ]
 
     def __init__(
-            self,
-            login: str,
-            password: str,
-            storage: Type[StorageType],
-            shared_secret: Optional[str] = None,
+        self,
+        login: str,
+        password: str,
+        storage: Type[StorageType] = BaseStorage,
+        authenticator: Optional[AuthenticatorData] = None,
     ):
         """
-        Steam Authorization.
+        Steam authorization.
 
         :param login: Steam login.
         :param password: Steam password.
         :param storage: Cookie storage.
-        :param shared_secret: Secret for Steam Guard generate.
+        :param authenticator: Steam authenticator data.
         """
-        super().__init__()
         self.login = login
         self.password = password
         self.storage = storage(self.login)
-        self.public_api = SteamPublicAPI()
-        self.shared_secret = shared_secret
+        self.authenticator = authenticator
 
     async def sessionid(self) -> str:
         """
@@ -131,15 +130,16 @@ class Steam(Session):
             response_model=LoginResult,
         )
 
-    async def get_steam_guard(self) -> str:
+    @classmethod
+    async def get_steam_guard(cls, shared_secret: str) -> str:
         """
         Calculating Steam Guard code.
         """
-        server_time = (await self.public_api.server_time()).response.server_time
+        server_time = (await SteamAPI.server_time()).response.server_time
 
         data = binascii.unhexlify(
             hmac.new(
-                key=base64.b64decode(self.shared_secret),
+                key=base64.b64decode(shared_secret),
                 msg=pack('!L', 0) + pack('!L', math.floor(server_time // 30)),
                 digestmod=hashlib.sha1,
             ).hexdigest(),
@@ -155,8 +155,8 @@ class Steam(Session):
 
         code = ''
         for _ in range(5):
-            code += chr(self.SGCodes[code_point % len(self.SGCodes)])
-            code_point //= len(self.SGCodes)
+            code += chr(cls.SteamGuardCodes[code_point % len(cls.SteamGuardCodes)])
+            code_point //= len(cls.SteamGuardCodes)
 
         return code
 
@@ -181,9 +181,11 @@ class Steam(Session):
             request.captchagid = result.captcha_gid
 
         if result.requires_twofactor:
-            if not self.shared_secret:
-                raise NotFoundSharedSecret
-            request.twofactorcode = await self.get_steam_guard()
+            if not self.authenticator:
+                raise NotFoundAuthenticatorData
+            request.twofactorcode = await Steam.get_steam_guard(
+                shared_secret=self.authenticator.shared_secret,
+            )
 
         if result.is_wrong_captcha():
             raise WrongCaptcha

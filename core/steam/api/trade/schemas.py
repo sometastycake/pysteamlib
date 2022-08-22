@@ -57,7 +57,7 @@ class SendOfferRequest(BaseModel):
 
     def tradelink(self) -> str:
         params = {
-            'partner': self.partner - 76561197960265728,
+            'partner': str(self.partner - 76561197960265728),
             'token': self.trade_offer_create_params.trade_offer_access_token,
         }
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))

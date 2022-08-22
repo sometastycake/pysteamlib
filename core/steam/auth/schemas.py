@@ -5,6 +5,10 @@ import rsa
 from pydantic import BaseModel, Field
 
 
+class AuthenticatorData(BaseModel):
+    shared_secret: str
+
+
 class SteamRSA(BaseModel):
     success: bool
     publickey_mod: Optional[str]

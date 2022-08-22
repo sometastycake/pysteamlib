@@ -30,7 +30,7 @@ class SteamInventory(Session):
 
         :return: Inventory.
         """
-        inventory = {
+        inventory: Dict = {
             'rgInventory': {},
             'rgDescriptions': {},
         }
