@@ -147,9 +147,9 @@ class Steam(Session):
 
         value = data[19] & 0xF
         code_point = (
-            (data[value] & 0x7F) << 24 |
-            (data[value + 1] & 0xFF) << 16 |
-            (data[value + 2] & 0xFF) << 8 |
+            (data[value] & 0x7F) << 24 |       # noqa:W504
+            (data[value + 1] & 0xFF) << 16 |   # noqa:W504
+            (data[value + 2] & 0xFF) << 8 |    # noqa:W504
             (data[value + 3] & 0xFF)
         )
 

@@ -16,6 +16,7 @@ def send_offer_handler(response: str) -> SendOfferResponse:
     if 'strError' in content:
         error = SendOfferErrorResponse.parse_obj(content)
         error.determine_error()
+        raise UnknownSteamError(content['strError'])
     else:
         return SendOfferResponse.parse_obj(content)
 

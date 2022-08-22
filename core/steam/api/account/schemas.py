@@ -1,6 +1,6 @@
 from typing import Generator, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from steam.api.account.enums import CommentPermissionLevel, PrivacyLevel
 from steam.schemas import BaseSteamResponse
 
@@ -58,7 +58,7 @@ class Images(BaseModel):
 class AvatarResponse(BaseModel):
     success: bool
     images: Images
-    hash: str
+    avatar_hash: str = Field(alias='hash')
     message: str
 
 

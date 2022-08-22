@@ -12,7 +12,7 @@ from steam.api.trade.errors import (
     TradeOffersLimitError,
 )
 from steam.errors import STEAM_ERROR_CODES
-from steam.exceptions import SteamError, UnknownSteamError
+from steam.exceptions import SteamError
 from yarl import URL
 
 
@@ -81,7 +81,7 @@ class SendOfferErrorResponse(BaseModel):
 
     def determine_error_code(self) -> None:
         error = re.match(
-            pattern='There was an error sending your trade offer.  Please try again later. \((\d+)\)',
+            pattern=r'There was an error sending your trade offer.  Please try again later. \((\d+)\)',
             string=self.strError,
         )
         if error and error.groups():
@@ -102,4 +102,3 @@ class SendOfferErrorResponse(BaseModel):
             if error in self.strError:
                 raise errors[error]
         self.determine_error_code()
-        raise UnknownSteamError

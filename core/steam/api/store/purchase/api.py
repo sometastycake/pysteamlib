@@ -47,7 +47,7 @@ class PurchaseGame:
         """
         page = await self.game_page()
         cost = page.cssselect('div[id*="game_area_purchase_section_add_to_cart_"] .game_purchase_price')
-        return int(re.search('(\d+)', cost[0].text).group(1))
+        return int(re.search(r'(\d+)', cost[0].text).group(1))
 
     async def check_balance(self) -> None:
         """
