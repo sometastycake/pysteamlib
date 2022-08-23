@@ -2,7 +2,7 @@ from steam.api.market.schemas import PriceHistoryResponse
 from steam.auth.steam import Steam
 
 
-class SteamMarketApi:
+class SteamMarket:
 
     def __init__(self, steam: Steam):
         self.steam = steam

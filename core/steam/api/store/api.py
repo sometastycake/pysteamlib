@@ -3,7 +3,7 @@ from steam.api.store.schemas import GamePrice
 from steam.auth.steam import Steam
 
 
-class SteamStoreAPI(Session):
+class SteamStore(Session):
 
     def __init__(self, steam: Steam):
         super().__init__()
