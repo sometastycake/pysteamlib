@@ -10,9 +10,10 @@ import aiohttp
 import rsa
 from aiohttp import FormData
 from pydantic import BaseModel
-from steam.auth.exceptions import LoginError, NotFoundAccountError, NotFoundAuthenticatorError, UnknownSteamDomain
+from steam.auth.exceptions import NotFoundAccountError, NotFoundAuthenticatorError, UnknownSteamDomain
 from steam.auth.schemas import AuthenticatorData, FinalizeLoginStatus, SteamAuthorizationStatus
 from steam.auth.storage import BaseStorage
+from steam.callbacks import _check_steam_error
 from steam.exceptions import SteamError
 from yarl import URL
 
@@ -81,30 +82,30 @@ class SteamAuth:
         if self._session:
             self._session.connector.close()
 
+    def _get_domain(self, url: str) -> str:
+        """
+        Get cookie domain.
+        """
+        host = URL(url).host.replace('www.', '')
+        if host not in ('store.steampowered.com', 'help.steampowered.com', 'steamcommunity.com'):
+            raise UnknownSteamDomain(f'Unknown Steam domain "{host}"')
+        return host
+
     async def request(
-        self,
-        url: str,
-        login: str,
-        method: str = 'GET',
-        response_model: Optional[Type[ResponseModelType]] = None,
-        **kwargs: Any,
+            self,
+            url: str,
+            login: str,
+            method: str = 'GET',
+            response_model: Optional[Type[ResponseModelType]] = None,
+            **kwargs: Any,
     ) -> Any:
         """
         Request with Steam session.
         """
-        host = URL(url).host
-        if 'store.steampowered.com' in host:
-            domain = 'store.steampowered.com'
-        elif 'help.steampowered.com' in host:
-            domain = 'help.steampowered.com'
-        elif 'steamcommunity.com' in host:
-            domain = 'steamcommunity.com'
-        else:
-            raise UnknownSteamDomain(f'Unknown Steam domain "{host}"')
         response = await self.session.request(
             url=url,
             method=method,
-            cookies=await self._storage.get(login, domain),
+            cookies=await self._storage.get(login, self._get_domain(url)),
             **kwargs,
         )
         if response_model:
@@ -144,6 +145,7 @@ class SteamAuth:
                 'input_protobuf_encoded': str(base64.b64encode(message.SerializeToString()), 'utf8'),
             },
         )
+        _check_steam_error(int(response.headers['x-eresult']))
         data = await response.content.read()
         return CAuthentication_GetPasswordRSAPublicKey_Response.FromString(data)
 
@@ -178,6 +180,7 @@ class SteamAuth:
                 ]
             ),
         )
+        _check_steam_error(int(response.headers['x-eresult']))
         data = await response.content.read()
         return CAuthentication_BeginAuthSessionViaCredentials_Response.FromString(data)
 
@@ -188,6 +191,7 @@ class SteamAuth:
         response = await self.session.post(
             url='https://api.steampowered.com/ITwoFactorService/QueryTime/v0001',
         )
+        _check_steam_error(int(response.headers['x-eresult']))
         data = await response.json()
         return int(data['response']['server_time'])
 
@@ -252,7 +256,7 @@ class SteamAuth:
             code=code,
             code_type=code_type,
         )
-        await self.session.post(
+        response = await self.session.post(
             url='https://api.steampowered.com/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1',
             data=FormData(
                 fields=[
@@ -260,6 +264,7 @@ class SteamAuth:
                 ]
             ),
         )
+        _check_steam_error(int(response.headers['x-eresult']))
 
     async def _poll_auth_session_status(
             self,
@@ -281,6 +286,7 @@ class SteamAuth:
                 ]
             ),
         )
+        _check_steam_error(int(response.headers['x-eresult']))
         data = await response.content.read()
         return CAuthentication_PollAuthSessionStatus_Response.FromString(data)
 
@@ -300,11 +306,11 @@ class SteamAuth:
         )
         return FinalizeLoginStatus.parse_raw(await response.text())
 
-    async def _set_token(self, url: str, nonce: str, auth: str, steamid: int) -> str:
+    async def _set_token(self, url: str, nonce: str, auth: str, steamid: int) -> Dict[str, str]:
         """
         Set token.
 
-        :return: SteamLoginSecure cookie value.
+        :return: Cookies.
         """
         response = await self.session.post(
             url=url,
@@ -320,7 +326,7 @@ class SteamAuth:
         code = result['result']
         if code not in (1, 22):
             raise SteamError(error_code=code)
-        return response.cookies.get('steamLoginSecure').value
+        return {k: v.value for k, v in response.cookies.items()}
 
     async def login_to_steam(self, login: str) -> None:
         """
@@ -336,10 +342,9 @@ class SteamAuth:
             rsa_timestamp=keys.timestamp,
             login=login,
         )
-        if not auth_session.steamid:
-            raise LoginError(f'Login error "{login}"')
         if auth_session.allowed_confirmations:
-            if auth_session.allowed_confirmations[0].confirmation_type == k_EAuthSessionGuardType_DeviceCode:
+            confirmation = auth_session.allowed_confirmations[0]
+            if confirmation.confirmation_type == k_EAuthSessionGuardType_DeviceCode:
                 code = await self.get_steam_guard(self.authenticator(login).shared_secret)
                 await self._update_auth_session(
                     client_id=auth_session.client_id,
@@ -347,26 +352,24 @@ class SteamAuth:
                     code=code,
                     code_type=k_EAuthSessionGuardType_DeviceCode,
                 )
-        auth_session_status = await self._poll_auth_session_status(
+        session_status = await self._poll_auth_session_status(
             client_id=auth_session.client_id,
             request_id=auth_session.request_id,
         )
-        transfer_info_response = await self._finalize_login(
-            refresh_token=auth_session_status.refresh_token,
+        transfer_info = await self._finalize_login(
+            refresh_token=session_status.refresh_token,
             sessionid=sessionid,
         )
         cookies = {}
-        for transfer in transfer_info_response.transfer_info:
-            steam_login_secure = await self._set_token(
+        for transfer in transfer_info.transfer_info:
+            domain_cookies = await self._set_token(
                 url=transfer.url,
                 nonce=transfer.params.nonce,
                 auth=transfer.params.auth,
                 steamid=auth_session.steamid,
             )
-            host = URL(transfer.url).host
-            cookies[host] = {
+            cookies[URL(transfer.url).host] = {
                 'sessionid': sessionid,
-                'steamLoginSecure': steam_login_secure,
-                'Steam_Language': 'english',
+                **domain_cookies,
             }
         await self._storage.set(login, cookies)
