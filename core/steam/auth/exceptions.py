@@ -2,25 +2,13 @@ class LoginError(Exception):
     ...
 
 
-class GetRsaError(LoginError):
+class NotFoundAuthenticatorError(Exception):
     ...
 
 
-class IncorrectCredentials(LoginError):
+class NotFoundAccountError(Exception):
     ...
 
 
-class WrongCaptcha(LoginError):
-    ...
-
-
-class NotFoundAntigateApiKey(LoginError):
-    ...
-
-
-class NotFoundAuthenticatorData(LoginError):
-    ...
-
-
-class CaptchaGidNotFound(LoginError):
+class UnknownSteamDomain(Exception):
     ...

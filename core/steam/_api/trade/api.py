@@ -1,19 +1,19 @@
-from steam.api.account.api import SteamAccount
-from steam.api.trade.handlers import (
+from steam._api.account.api import SteamAccount
+from steam._api.trade.handlers import (
     _accept_offer_response_handler,
     _cancel_offer_response_handler,
     _decline_offer_response_handler,
     _send_offer_response_handler,
 )
-from steam.api.trade.schemas import SendOfferRequest, SendOfferResponse
+from steam._api.trade.schemas import SendOfferRequest, SendOfferResponse
 from steam.auth.steam import Steam
 
 
 class SteamTrade:
 
-    def __init__(self, steam: Steam):
+    def __init__(self, steam: Steam, account_api: SteamAccount):
         self.steam = steam
-        self.account_api = SteamAccount(steam)
+        self.account_api = account_api
 
     async def send_offer(self, request: SendOfferRequest) -> SendOfferResponse:
         """

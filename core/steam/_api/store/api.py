@@ -1,5 +1,5 @@
 from session import Session
-from steam.api.store.schemas import GamePrice
+from steam._api.store.schemas import GamePrice
 from steam.auth.steam import Steam
 
 

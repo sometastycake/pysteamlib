@@ -1,16 +1,16 @@
-from typing import Any, Dict
+from typing import Dict
 
 from steam.storage.abstract import CookieStorage
 
 
 class BaseStorage(CookieStorage):
 
-    def __init__(self, key: str):
-        super().__init__(key)
-        self._cookie: Dict = {}
+    def __init__(self):
+        self.cookie: Dict = {}
 
-    async def get(self) -> Dict:
-        return self._cookie.get(self.key, {})
+    async def get(self, login: str, domain: str) -> Dict:
+        cookies = self.cookie.get(login, {})
+        return cookies.get(domain, {})
 
-    async def set(self, value: Any) -> None:
-        self._cookie[self.key] = value
+    async def set(self, login: str, value: Dict) -> None:
+        self.cookie[login] = value

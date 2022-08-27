@@ -1,14 +1,13 @@
 import json
 import re
-from typing import Optional
 
 import aiofiles
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
 from session import Session
-from steam.api.account.enums import Language
-from steam.api.account.errors import KeyRegistrationError, NotFoundSteamid
-from steam.api.account.schemas import (
+from steam._api.account.enums import Language
+from steam._api.account.errors import KeyRegistrationError, NotFoundSteamid
+from steam._api.account.schemas import (
     AvatarResponse,
     NicknameHistory,
     PrivacyInfo,
@@ -23,29 +22,16 @@ from yarl import URL
 
 class SteamAccount(Session):
 
-    def __init__(self, steam: Steam, steamid: Optional[int] = None):
+    def __init__(self, steam: Steam):
         self.steam = steam
-        self._steamid = steamid
 
-    @property
-    async def steamid(self) -> int:
-        """
-        Get steamid.
-
-        :return: steamid.
-        """
-        if not self._steamid:
-            self._steamid = await self.get_steamid()
-        return self._steamid
-
-    @classmethod
-    async def get_nickname_history(cls, steamid: int) -> NicknameHistory:
+    async def get_nickname_history(self) -> NicknameHistory:
         """
         Get nickname history.
 
         :return: Nickname history.
         """
-        response = await cls.session.post(
+        response = await self.session.post(
             url=f'https://steamcommunity.com/profiles/{steamid}/ajaxaliases/',
             headers={
                 'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',

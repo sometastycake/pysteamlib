@@ -3,10 +3,10 @@ from typing import Dict
 
 from aiocache import cached
 from lxml.html import HtmlElement, document_fromstring
-from steam.api.account.api import SteamAccount
-from steam.api.public.api import SteamAPI
-from steam.api.store.purchase.errors import NotEnoughFundsForGame
-from steam.api.store.purchase.schemas import (
+from steam._api.account.api import SteamAccount
+from steam._api.public.api import SteamPublic
+from steam._api.store.purchase.errors import NotEnoughFundsForGame
+from steam._api.store.purchase.schemas import (
     FinalizeTransactionResponse,
     FinalPriceRequest,
     FinalPriceResponse,
@@ -24,7 +24,7 @@ class PurchaseGame:
         self.game = game
         self.appid = appid
         self.steam = steam
-        self.public_api = SteamAPI()
+        self.public_api = SteamPublic()
         self.account_api = SteamAccount(steam)
 
     @cached(ttl=30)

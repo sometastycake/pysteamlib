@@ -20,6 +20,7 @@ class Session:
     def session(cls) -> aiohttp.ClientSession:
         if cls._session is None:
             cls._session = aiohttp.ClientSession(
+                cookie_jar=aiohttp.DummyCookieJar(),
                 raise_for_status=True,
                 connector=aiohttp.TCPConnector(ssl=False, force_close=True),
                 timeout=aiohttp.ClientTimeout(total=10),
@@ -29,15 +30,3 @@ class Session:
     def __del__(self):
         if self._session and not self._session.closed:
             self._session.connector.close()
-
-    def get_cookies(self, domain: str) -> Dict[str, str]:
-        """
-        Aiohttp session saves and stores cookies.
-        It writes cookies from responses after each request that specified
-        in Set-Cookie header.
-        """
-        cookies = {}
-        for cookie in self.session.cookie_jar:
-            if cookie['domain'] == domain:
-                cookies[cookie.key] = cookie.value
-        return cookies

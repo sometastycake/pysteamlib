@@ -1,7 +1,7 @@
 from typing import Dict
 
 from session import Session
-from steam.api.inventory.exceptions import PrivateInventoryError, UnknownInventoryError
+from steam._api.inventory.exceptions import PrivateInventoryError, UnknownInventoryError
 
 
 class SteamInventory(Session):

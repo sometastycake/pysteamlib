@@ -1,4 +1,4 @@
-from steam.api.market.schemas import PriceHistoryResponse
+from steam._api.market.schemas import PriceHistoryResponse
 from steam.auth.steam import Steam
 
 

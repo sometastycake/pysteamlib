@@ -1,9 +1,9 @@
 from session import Session
-from steam.api.market.schemas import ApplistResponse
-from steam.api.public.schemas import ServerTimeResponse
+from steam._api.market.schemas import ApplistResponse
+from steam._api.public.schemas import ServerTimeResponse
 
 
-class SteamAPI(Session):
+class SteamPublic(Session):
 
     @classmethod
     async def server_time(cls) -> ServerTimeResponse:

@@ -3,7 +3,7 @@ import re
 from typing import Dict, List
 
 from pydantic import BaseModel
-from steam.api.trade.exceptions import (
+from steam._api.trade.exceptions import (
     AccountOverflowError,
     ProfileSettingsError,
     SteamServerDownError,

@@ -3,129 +3,199 @@ import binascii
 import hashlib
 import hmac
 import math
-import time
 from struct import pack
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, TypeVar
 
-from config import config
+import aiohttp
+import rsa
+from aiohttp import FormData
 from pydantic import BaseModel
-from session import Session
-from steam.api.public.api import SteamAPI
-from steam.auth.captcha import AntigateCaptchaSolver
-from steam.auth.exceptions import (
-    CaptchaGidNotFound,
-    GetRsaError,
-    IncorrectCredentials,
-    LoginError,
-    NotFoundAntigateApiKey,
-    NotFoundAuthenticatorData,
-    WrongCaptcha,
-)
-from steam.auth.schemas import AuthenticatorData, LoginRequest, LoginResult, SteamAuthorizationStatus, SteamRSA
+from steam.auth.exceptions import LoginError, NotFoundAccountError, NotFoundAuthenticatorError, UnknownSteamDomain
+from steam.auth.schemas import AuthenticatorData, FinalizeLoginStatus, SteamAuthorizationStatus
 from steam.auth.storage import BaseStorage
+from steam.exceptions import SteamError
+from yarl import URL
 
 from core.steam.storage.abstract import CookieStorage
+from pb2_schemas.enums_pb2 import k_ESessionPersistence_Persistent
+from pb2_schemas.steammessages_auth.steamclient_pb2 import (
+    CAuthentication_BeginAuthSessionViaCredentials_Request,
+    CAuthentication_BeginAuthSessionViaCredentials_Response,
+    CAuthentication_GetPasswordRSAPublicKey_Request,
+    CAuthentication_GetPasswordRSAPublicKey_Response,
+    CAuthentication_PollAuthSessionStatus_Request,
+    CAuthentication_PollAuthSessionStatus_Response,
+    CAuthentication_UpdateAuthSessionWithSteamGuardCode_Request,
+    k_EAuthSessionGuardType_DeviceCode,
+    k_EAuthTokenPlatformType_WebBrowser,
+)
 
 StorageType = TypeVar('StorageType', bound=CookieStorage)
 ResponseModelType = TypeVar('ResponseModelType', bound=BaseModel)
 
 
-class Steam(Session):
-    """
-    Steam authorization class.
-    """
+class SteamAuth:
+
     steam_guard_codes = [
         50, 51, 52, 53, 54, 55, 56, 57, 66, 67, 68, 70, 71,
         72, 74, 75, 77, 78, 80, 81, 82, 84, 86, 87, 88, 89,
     ]
 
-    def __init__(
-        self,
-        login: str,
-        password: str,
-        storage: Type[StorageType] = BaseStorage,
-        authenticator: Optional[AuthenticatorData] = None,
-    ):
-        """
-        Steam authorization.
+    def __init__(self, storage: Type[StorageType] = BaseStorage):
+        self._session: Optional[aiohttp.ClientSession] = None
+        self._accounts: Dict[str, str] = {}
+        self._authenticators: Dict[str, AuthenticatorData] = {}
+        self._storage = storage()
 
-        :param login: Steam login.
-        :param password: Steam password.
-        :param storage: Cookie storage.
-        :param authenticator: Steam authenticator data.
-        """
-        self.login = login
-        self.password = password
-        self.storage = storage(self.login)
-        self.authenticator = authenticator
+    def password(self, login: str) -> str:
+        """Get password."""
+        try:
+            return self._accounts[login]
+        except KeyError:
+            raise NotFoundAccountError(f'Not found account: "{login}"') from None
 
-    async def sessionid(self) -> str:
-        """
-        Sessionid cookie.
-        """
-        return (await self.storage.get())['sessionid']
+    def authenticator(self, login: str) -> AuthenticatorData:
+        """Get authenticator."""
+        try:
+            return self._authenticators[login]
+        except KeyError:
+            raise NotFoundAuthenticatorError(f'Not found authenticator: "{login}"') from None
+
+    def add_account(self, login: str, password: str, authenticator: Optional[AuthenticatorData] = None):
+        """Add account."""
+        self._accounts.update({login: password})
+        if authenticator:
+            self._authenticators.update({login: authenticator})
+
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        if self._session is None:
+            self._session = aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(ssl=False),
+                raise_for_status=True,
+                cookie_jar=aiohttp.DummyCookieJar(),
+            )
+        return self._session
+
+    def __del__(self):
+        if self._session:
+            self._session.connector.close()
 
     async def request(
-            self,
-            url: str,
-            method: str = 'GET',
-            response_model: Optional[Type[ResponseModelType]] = None,
-            **kwargs: Any,
+        self,
+        url: str,
+        login: str,
+        method: str = 'GET',
+        response_model: Optional[Type[ResponseModelType]] = None,
+        **kwargs: Any,
     ) -> Any:
         """
         Request with Steam session.
         """
+        host = URL(url).host
+        if 'store.steampowered.com' in host:
+            domain = 'store.steampowered.com'
+        elif 'help.steampowered.com' in host:
+            domain = 'help.steampowered.com'
+        elif 'steamcommunity.com' in host:
+            domain = 'steamcommunity.com'
+        else:
+            raise UnknownSteamDomain(f'Unknown Steam domain "{host}"')
         response = await self.session.request(
             url=url,
             method=method,
-            cookies=await self.storage.get(),
+            cookies=await self._storage.get(login, domain),
             **kwargs,
         )
-        if response_model is not None:
+        if response_model:
             return response_model.parse_raw(await response.text())
         return await response.text()
 
-    async def is_authorized(self) -> bool:
+    async def is_authorized(self, login: str) -> bool:
         """
         Is alive authorization.
         """
-        response = await self.request(
+        response: SteamAuthorizationStatus = await self.request(
             url='https://steamcommunity.com/chat/clientjstoken',
             response_model=SteamAuthorizationStatus,
+            login=login,
         )
         return response.logged_in
 
-    async def getrsakey(self) -> SteamRSA:
+    async def get_sessionid_from_steam(self) -> str:
         """
-        Getting data for password encryption.
+        Get sessionid cookie.
         """
-        return await self.request(
-            method='POST',
-            url='https://steamcommunity.com/login/getrsakey/',
-            data={
-                'donotcache': int(time.time()),
-                'username': self.login,
+        response = await self.session.get(
+            url='https://steamcommunity.com',
+        )
+        return response.cookies.get('sessionid').value
+
+    async def _getrsakey(self, login: str) -> CAuthentication_GetPasswordRSAPublicKey_Response:
+        """
+        Get rsa keys for password encryption.
+        """
+        message = CAuthentication_GetPasswordRSAPublicKey_Request(
+            account_name=login,
+        )
+        response = await self.session.get(
+            url='https://api.steampowered.com/IAuthenticationService/GetPasswordRSAPublicKey/v1',
+            params={
+                'input_protobuf_encoded': str(base64.b64encode(message.SerializeToString()), 'utf8'),
             },
-            response_model=SteamRSA,
         )
+        data = await response.content.read()
+        return CAuthentication_GetPasswordRSAPublicKey_Response.FromString(data)
 
-    async def do_login(self, request: LoginRequest) -> LoginResult:
+    async def _begin_auth_session(
+            self,
+            encrypted_password: str,
+            rsa_timestamp: int,
+            login: str,
+    ) -> CAuthentication_BeginAuthSessionViaCredentials_Response:
         """
-        Authorization request.
+        Begin auth session.
         """
-        return await self.request(
-            method='POST',
-            url='https://steamcommunity.com/login/dologin/',
-            data=request.dict(),
-            response_model=LoginResult,
+        user_agent = (
+            'Mozilla/5.0 (Linux; Android 2.3) AppleWebKit/535.2 '
+            '(KHTML, like Gecko) Chrome/20.0.850.0 Safari/535.2'
         )
+        message = CAuthentication_BeginAuthSessionViaCredentials_Request(
+            account_name=login,
+            encrypted_password=encrypted_password,
+            encryption_timestamp=rsa_timestamp,
+            remember_login=True,
+            platform_type=k_EAuthTokenPlatformType_WebBrowser,
+            website_id='Community',
+            persistence=k_ESessionPersistence_Persistent,
+            device_friendly_name=user_agent,
+        )
+        response = await self.session.post(
+            url='https://api.steampowered.com/IAuthenticationService/BeginAuthSessionViaCredentials/v1',
+            data=FormData(
+                fields=[
+                    ('input_protobuf_encoded', str(base64.b64encode(message.SerializeToString()), 'utf8'))
+                ]
+            ),
+        )
+        data = await response.content.read()
+        return CAuthentication_BeginAuthSessionViaCredentials_Response.FromString(data)
 
-    @classmethod
-    async def get_steam_guard(cls, shared_secret: str) -> str:
+    async def get_server_time(self) -> int:
+        """
+        Get server time.
+        """
+        response = await self.session.post(
+            url='https://api.steampowered.com/ITwoFactorService/QueryTime/v0001',
+        )
+        data = await response.json()
+        return int(data['response']['server_time'])
+
+    async def get_steam_guard(self, shared_secret: str) -> str:
         """
         Calculating Steam Guard code.
         """
-        server_time = (await SteamAPI.server_time()).response.server_time
+        server_time = await self.get_server_time()
 
         data = binascii.unhexlify(
             hmac.new(
@@ -145,63 +215,158 @@ class Steam(Session):
 
         code = ''
         for _ in range(5):
-            code += chr(cls.steam_guard_codes[code_point % len(cls.steam_guard_codes)])
-            code_point //= len(cls.steam_guard_codes)
+            code += chr(self.steam_guard_codes[code_point % len(self.steam_guard_codes)])
+            code_point //= len(self.steam_guard_codes)
 
         return code
 
-    async def _login(self, request: LoginRequest):
+    def _encrypt_password(self, keys: CAuthentication_GetPasswordRSAPublicKey_Response, login: str) -> str:
         """
-        Authorization.
+        Encrypt password.
         """
-        result = await self.do_login(request)
-        for _ in range(3):
-            if result.success:
-                return
-            if result.is_credentials_incorrect():
-                raise IncorrectCredentials
+        publickey_exp = int(keys.publickey_exp, 16)  # type:ignore
+        publickey_mod = int(keys.publickey_mod, 16)  # type:ignore
+        public_key = rsa.PublicKey(
+            n=publickey_mod,
+            e=publickey_exp,
+        )
+        encrypted_password = rsa.encrypt(
+            message=self.password(login).encode('ascii'),
+            pub_key=public_key,
+        )
+        return str(base64.b64encode(encrypted_password), 'utf8')
 
-            if result.captcha_needed:
-                if not result.captcha_gid:
-                    raise CaptchaGidNotFound
+    async def _update_auth_session(
+            self,
+            client_id: int,
+            steamid: int,
+            code: str,
+            code_type: int,
+    ) -> None:
+        """
+        Update session request.
+        """
+        message = CAuthentication_UpdateAuthSessionWithSteamGuardCode_Request(
+            client_id=client_id,
+            steamid=steamid,
+            code=code,
+            code_type=code_type,
+        )
+        await self.session.post(
+            url='https://api.steampowered.com/IAuthenticationService/UpdateAuthSessionWithSteamGuardCode/v1',
+            data=FormData(
+                fields=[
+                    ('input_protobuf_encoded', str(base64.b64encode(message.SerializeToString()), 'utf8'))
+                ]
+            ),
+        )
 
-                if not config.antigate_api_key:
-                    raise NotFoundAntigateApiKey
+    async def _poll_auth_session_status(
+            self,
+            client_id: int,
+            request_id: bytes,
+    ) -> CAuthentication_PollAuthSessionStatus_Response:
+        """
+        Auth session status.
+        """
+        message = CAuthentication_PollAuthSessionStatus_Request(
+            client_id=client_id,
+            request_id=request_id,
+        )
+        response = await self.session.post(
+            url='https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1',
+            data=FormData(
+                fields=[
+                    ('input_protobuf_encoded', str(base64.b64encode(message.SerializeToString()), 'utf8'))
+                ]
+            ),
+        )
+        data = await response.content.read()
+        return CAuthentication_PollAuthSessionStatus_Response.FromString(data)
 
-                request.captcha_text = await AntigateCaptchaSolver().solve(result.captcha_url)
-                request.captchagid = result.captcha_gid
+    async def _finalize_login(self, refresh_token: str, sessionid: str) -> FinalizeLoginStatus:
+        """
+        Finalize login.
+        """
+        response = await self.session.post(
+            url='https://login.steampowered.com/jwt/finalizelogin',
+            data=FormData(
+                fields=[
+                    ('nonce', refresh_token),
+                    ('sessionid', sessionid),
+                    ('redir', 'https://steamcommunity.com/login/home/?goto='),
+                ],
+            ),
+        )
+        return FinalizeLoginStatus.parse_raw(await response.text())
 
-            elif result.requires_twofactor:
-                if not self.authenticator:
-                    raise NotFoundAuthenticatorData
-                request.twofactorcode = await Steam.get_steam_guard(
-                    shared_secret=self.authenticator.shared_secret,
-                )
+    async def _set_token(self, url: str, nonce: str, auth: str, steamid: int) -> str:
+        """
+        Set token.
 
-            result = await self.do_login(request)
+        :return: SteamLoginSecure cookie value.
+        """
+        response = await self.session.post(
+            url=url,
+            data=FormData(
+                fields=[
+                    ('nonce', nonce),
+                    ('auth', auth),
+                    ('steamID', str(steamid)),
+                ],
+            ),
+        )
+        result = await response.json()
+        code = result['result']
+        if code not in (1, 22):
+            raise SteamError(error_code=code)
+        return response.cookies.get('steamLoginSecure').value
 
-        if not result.success:
-            if result.is_wrong_captcha():
-                raise WrongCaptcha
-            raise LoginError(result.message)
-
-    async def login_to_steam(self) -> None:
+    async def login_to_steam(self, login: str) -> None:
         """
         Login to Steam.
         """
-        if await self.is_authorized():
+        if await self.is_authorized(login):
             return
-
-        keys = await self.getrsakey()
-        if not keys.success:
-            raise GetRsaError
-
-        request = LoginRequest(
-            donotcache=int(time.time()),
-            password=keys.encrypt_password(self.password),
-            username=self.login,
-            rsatimestamp=keys.timestamp,
+        sessionid = await self.get_sessionid_from_steam()
+        keys = await self._getrsakey(login)
+        encrypted_password = self._encrypt_password(keys, login)
+        auth_session = await self._begin_auth_session(
+            encrypted_password=encrypted_password,
+            rsa_timestamp=keys.timestamp,
+            login=login,
         )
-
-        await self._login(request)
-        await self.storage.set(self.get_cookies('steamcommunity.com'))
+        if not auth_session.steamid:
+            raise LoginError(f'Login error "{login}"')
+        if auth_session.allowed_confirmations:
+            if auth_session.allowed_confirmations[0].confirmation_type == k_EAuthSessionGuardType_DeviceCode:
+                code = await self.get_steam_guard(self.authenticator(login).shared_secret)
+                await self._update_auth_session(
+                    client_id=auth_session.client_id,
+                    steamid=auth_session.steamid,
+                    code=code,
+                    code_type=k_EAuthSessionGuardType_DeviceCode,
+                )
+        auth_session_status = await self._poll_auth_session_status(
+            client_id=auth_session.client_id,
+            request_id=auth_session.request_id,
+        )
+        transfer_info_response = await self._finalize_login(
+            refresh_token=auth_session_status.refresh_token,
+            sessionid=sessionid,
+        )
+        cookies = {}
+        for transfer in transfer_info_response.transfer_info:
+            steam_login_secure = await self._set_token(
+                url=transfer.url,
+                nonce=transfer.params.nonce,
+                auth=transfer.params.auth,
+                steamid=auth_session.steamid,
+            )
+            host = URL(transfer.url).host
+            cookies[host] = {
+                'sessionid': sessionid,
+                'steamLoginSecure': steam_login_secure,
+                'Steam_Language': 'english',
+            }
+        await self._storage.set(login, cookies)
