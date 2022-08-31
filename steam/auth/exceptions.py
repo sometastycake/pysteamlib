@@ -18,10 +18,6 @@ class NotFoundAccountError(Exception):
     """Account not found in SteamAuth."""
 
 
-class NotFoundSteamidError(Exception):
-    """Steamid not found in SteamAuth."""
-
-
 class AccountAlreadyExistsError(Exception):
     """Account already exists in SteamAuth."""
 

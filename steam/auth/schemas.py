@@ -39,7 +39,6 @@ class OAuth(BaseModel):
     oauth_token: str
     wgtoken: str
     wgtoken_secure: str
-    WebCookie: Optional[str]
 
 
 class LoginResult(BaseModel):
@@ -120,5 +119,5 @@ class ServerTimeResponse(BaseModel):
 
 class AccountData(BaseModel):
     password: str
-    steamid: Optional[int]
+    steamid: int
     authenticator: Optional[Authenticator]

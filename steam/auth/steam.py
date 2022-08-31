@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 from bitstring import BitArray
 from lxml.html import HtmlElement, document_fromstring
-from pydantic import BaseModel
 
 from steam.abstract.request import RequestStrategyAbstract
 from steam.abstract.storage import CookieStorageAbstract
@@ -22,7 +21,6 @@ from steam.auth.exceptions import (
     LoginError,
     NotFoundAuthenticatorError,
     NotFoundMobileConfirmationError,
-    NotFoundSteamidError,
 )
 from steam.auth.schemas import (
     RSA,
@@ -38,11 +36,10 @@ from steam.base.request import BaseRequestStrategy
 from steam.base.storage import BaseCookieStorage
 
 CookieStorageType = TypeVar('CookieStorageType', bound=CookieStorageAbstract)
-ResponseModelType = TypeVar('ResponseModelType', bound=BaseModel)
 RequestStrategyType = TypeVar('RequestStrategyType', bound=RequestStrategyAbstract)
 
 
-class SteamAuth:
+class Steam:
     """
     Steam authorization class.
     """
@@ -57,10 +54,7 @@ class SteamAuth:
 
     def steamid(self, login: str) -> int:
         """Get steamid."""
-        steamid = self._accounts[login].steamid
-        if steamid is None:
-            raise NotFoundSteamidError(f'Not found steamid: "{login}"')
-        return steamid
+        return self._accounts[login].steamid
 
     def password(self, login: str) -> str:
         """Get password."""
@@ -112,54 +106,34 @@ class SteamAuth:
         )
         return await response.text()
 
-    async def request_with_model(
-            self,
-            url: str,
-            login: str,
-            method: str = 'GET',
-            response_model: Optional[Type[ResponseModelType]] = None,
-            **kwargs: Any,
-    ) -> ResponseModelType:
-        """
-        Request with Steam session.
-        """
-        response = await self.request(
-            url=url,
-            login=login,
-            method=method,
-            **kwargs
-        )
-        return response_model.parse_raw(response)
-
     async def is_authorized(self, login: str) -> bool:
         """
         Is alive authorization.
         """
-        response = await self.request_with_model(
+        response = await self.request(
             url='https://steamcommunity.com/chat/clientjstoken',
-            response_model=SteamAuthorizationStatus,
             login=login,
         )
-        return response.logged_in
+        return SteamAuthorizationStatus.parse_raw(response).logged_in
 
     async def _getrsakey(self, login: str) -> RSA:
         """
         Getting data for password encryption.
         """
-        return await self.request_with_model(
+        response = await self.request(
             method='POST',
             url='https://steamcommunity.com/login/getrsakey/',
             data={
                 'donotcache': int(time.time()),
                 'username': login,
             },
-            response_model=RSA,
             login=login,
             cookies={
                 'mobileClient': 'ios',
                 'mobileClientVersion': '2.0.20',
             },
         )
+        return RSA.parse_raw(response)
 
     async def _do_login(self, request: LoginRequest) -> Tuple[LoginResult, Dict]:
         """
@@ -376,8 +350,6 @@ class SteamAuth:
         )
 
         result, cookies = await self._login(request, login)
-        if not self._accounts[login].steamid:
-            self._accounts[login].steamid = result.oauth.steamid
 
         cookies.update({
             'sessionid': sessionid,
