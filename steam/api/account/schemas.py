@@ -2,7 +2,7 @@ from typing import Generator, List, Optional
 
 from pydantic import BaseModel, Field
 
-from steam._api.account.enums import CommentPermissionLevel, PrivacyLevel
+from steam.api.account.enums import CommentPermissionLevel, PrivacyLevel
 from steam.schemas import BaseSteamResponse
 
 

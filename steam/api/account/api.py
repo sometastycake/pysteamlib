@@ -4,12 +4,11 @@ import re
 import aiofiles
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
-from session import Session
 from yarl import URL
 
-from steam._api.account.enums import Language
-from steam._api.account.errors import KeyRegistrationError, NotFoundSteamid
-from steam._api.account.schemas import (
+from steam.api.account.enums import Language
+from steam.api.account.errors import KeyRegistrationError
+from steam.api.account.schemas import (
     AvatarResponse,
     NicknameHistory,
     PrivacyInfo,
@@ -21,60 +20,37 @@ from steam.auth.steam import Steam
 from steam.callbacks import _check_steam_error_from_response
 
 
-class SteamAccount(Session):
+class SteamAccount:
 
     def __init__(self, steam: Steam):
         self.steam = steam
 
-    async def get_nickname_history(self) -> NicknameHistory:
+    async def get_nickname_history(self, login: str) -> NicknameHistory:
         """
         Get nickname history.
-
-        :return: Nickname history.
         """
-        response = await self.session.post(
-            url=f'https://steamcommunity.com/profiles/{steamid}/ajaxaliases/',
+        response: str = await self.steam.request(
+            method='POST',
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxaliases/',
             headers={
                 'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Referer': f'https://steamcommunity.com/profiles/{steamid}/',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/',
                 'Origin': 'https://steamcommunity.com',
             },
+            login=login,
         )
-        return NicknameHistory.parse_raw(await response.text())
+        return NicknameHistory.parse_raw(response)
 
-    async def get_steamid(self) -> int:
-        """
-        Get steamid from Steam.
-
-        :return: steamid.
-        """
-        response = await self.steam.request(
-            url='https://steamcommunity.com/',
-            headers={
-                'Accept': '*/*',
-                'Origin': 'https://steamcommunity.com',
-            },
-        )
-        steamid = re.search(
-            pattern=r'g_steamID = \"(\d+)\";',
-            string=response,
-        )
-        if not steamid:
-            raise NotFoundSteamid('Not found steamid')
-        return int(steamid.group(1))
-
-    async def change_account_language(self, language: Language) -> bool:
+    async def change_account_language(self, language: Language, login: str) -> bool:
         """
         Change account language.
-
-        :return: Is success.
         """
         response = await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/actions/SetLanguage/',
             data={
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
                 'language': language.value,
             },
             headers={
@@ -83,20 +59,20 @@ class SteamAccount(Session):
                 'X-Requested-With:': 'XMLHttpRequest',
                 'Origin': 'https://steamcommunity.com',
             },
+            login=login,
         )
         return True if response == 'true' else False
 
-    async def get_current_profile_info(self) -> ProfileInfo:
+    async def get_current_profile_info(self, login: str) -> ProfileInfo:
         """
         Get profile info.
-
-        :return: Profile info.
         """
         response = await self.steam.request(
-            url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
+            login=login,
         )
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
@@ -111,62 +87,59 @@ class SteamAccount(Session):
             hide_profile_awards=info['ProfilePreferences']['hide_profile_awards'],
         )
 
-    async def set_profile_info(self, info: ProfileInfo) -> ProfileInfoResponse:
+    async def set_profile_info(self, info: ProfileInfo, login: str) -> ProfileInfoResponse:
         """
         Set profile info.
-
-        :return: Set profile info status.
         """
         response = await self.steam.request(
             method='POST',
-            url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/',
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/',
             data=FormData(
                 fields=[
-                    ('sessionID', await self.steam.sessionid()),
+                    ('sessionID', await self.steam.sessionid(login)),
                     ('type', 'profileSave'),
                     *list(info),
                     ('type', 'profileSave'),
-                    ('sessionID', await self.steam.sessionid()),
+                    ('sessionID', await self.steam.sessionid(login)),
                     ('json', '1'),
                 ],
             ),
             headers={
                 'Accept': 'application/json, text/plain, */*',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             },
-            response_model=ProfileInfoResponse,
+            login=login,
         )
-        return _check_steam_error_from_response(response)
+        result = ProfileInfoResponse.parse_raw(response)
+        _check_steam_error_from_response(result)
+        return result
 
-    async def get_current_privacy(self) -> PrivacyInfo:
+    async def get_current_privacy(self, login: str) -> PrivacyInfo:
         """
         Get privacy settings.
-
-        :return: Privacy info.
         """
         response = await self.steam.request(
-            url=f'https://steamcommunity.com/profiles/{await self.steamid}/edit/info',
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
+            login=login,
         )
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
         return PrivacyInfo(**info['Privacy'])
 
-    async def set_privacy(self, settings: PrivacyInfo) -> PrivacyResponse:
+    async def set_privacy(self, settings: PrivacyInfo, login: str) -> PrivacyResponse:
         """
         Privacy settings.
-
-        :return: Privacy response.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
-            url=f'https://steamcommunity.com/profiles/{await self.steamid}/ajaxsetprivacy/',
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxsetprivacy/',
             data=FormData(
                 fields=[
-                    ('sessionid', await self.steam.sessionid()),
+                    ('sessionid', await self.steam.sessionid(login)),
                     ('Privacy', settings.PrivacySettings.json()),
                     ('eCommentPermission', settings.eCommentPermission.value),
                 ],
@@ -174,37 +147,36 @@ class SteamAccount(Session):
             headers={
                 'Accept': 'application/json, text/plain, */*',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/settings',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/settings',
             },
-            response_model=PrivacyResponse,
+            login=login,
         )
-        return _check_steam_error_from_response(response)
+        result = PrivacyResponse.parse_raw(response)
+        _check_steam_error_from_response(result)
+        return result
 
-    async def revoke_api_key(self) -> str:
+    async def revoke_api_key(self, login: str) -> str:
         """
         Revoke api key.
-
-        :return: Result html page.
         """
         return await self.steam.request(
             url='https://steamcommunity.com/dev/revokekey',
             method='POST',
             data={
                 'Revoke': 'Revoke My Steam Web API Key',
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
             },
             headers={
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
+            login=login,
         )
 
-    async def register_api_key(self, domain: str) -> str:
+    async def register_api_key(self, domain: str, login: str) -> str:
         """
         Register api key.
-
-        :return: API key.
         """
         response = await self.steam.request(
             url='https://steamcommunity.com/dev/registerkey',
@@ -212,13 +184,14 @@ class SteamAccount(Session):
             data={
                 'domain': domain,
                 'agreeToTerms': 'agreed',
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
                 'Submit': 'Register',
             },
             headers={
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
             },
+            login=login,
         )
 
         error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
@@ -229,66 +202,62 @@ class SteamAccount(Session):
         key = page.cssselect('#bodyContents_ex > p:nth-child(2)')[0].text
         return key[key.index(' ') + 1:]
 
-    async def register_tradelink(self) -> str:
+    async def register_tradelink(self, login: str) -> str:
         """
         Register tradelink.
-
-        :return: Tradelink.
         """
         token = await self.steam.request(
             method='POST',
-            url=f'https://steamcommunity.com/profiles/{await self.steamid}/tradeoffers/newtradeurl',
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/newtradeurl',
             data={
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
             },
             headers={
                 'Accept': '*/*',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/tradeoffers/privacy',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/privacy',
                 'X-Requested-With': 'XMLHttpRequest',
             },
+            login=login,
         )
 
         params = {
-            'partner': await self.steamid - 76561197960265728,
+            'partner': self.steam.steamid(login) - 76561197960265728,
             'token': token.replace('"', ''),
         }
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))
 
-    async def upload_avatar(self, path_to_avatar: str) -> AvatarResponse:
+    async def upload_avatar(self, path_to_avatar: str, login: str) -> AvatarResponse:
         """
         Upload avatar.
-
-        :return: Upload avatar status.
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
             image = await file.read()
-        return await self.steam.request(
+        response = await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/actions/FileUploader/',
             data=FormData(
                 fields=[
                     ('avatar', image),
                     ('type', 'player_avatar_image'),
-                    ('sId', str(await self.steamid)),
-                    ('sessionid', await self.steam.sessionid()),
+                    ('sId', self.steam.steamid(login)),
+                    ('sessionid', await self.steam.sessionid(login)),
                     ('doSub', '1'),
                     ('json', '1'),
                 ],
             ),
             headers={
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.steamid}/edit/avatar',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/avatar',
             },
-            response_model=AvatarResponse,
+            login=login,
         )
+        return AvatarResponse.parse_raw(response)
 
-    async def account_balance(self) -> int:
+    async def account_balance(self, login: str) -> int:
         """
         Get account balance.
-
-        :return: Account balance.
         """
         response = await self.steam.request(
             url='https://store.steampowered.com/account/store_transactions/',
@@ -296,6 +265,7 @@ class SteamAccount(Session):
                 'Accept': '*/*',
                 'Origin': 'https://steamcommunity.com',
             },
+            login=login,
         )
         page: HtmlElement = document_fromstring(response)
         balance = page.get_element_by_id('header_wallet_balance')

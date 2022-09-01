@@ -1,65 +1,59 @@
-from steam._api.account.api import SteamAccount
-from steam._api.trade.handlers import (
+from steam.api.trade.handlers import (
     _accept_offer_response_handler,
     _cancel_offer_response_handler,
     _decline_offer_response_handler,
     _send_offer_response_handler,
 )
-from steam._api.trade.schemas import SendOfferRequest, SendOfferResponse
+from steam.api.trade.schemas import SendOfferRequest, SendOfferResponse
 from steam.auth.steam import Steam
 
 
 class SteamTrade:
 
-    def __init__(self, steam: Steam, account_api: SteamAccount):
+    def __init__(self, steam: Steam):
         self.steam = steam
-        self.account_api = account_api
 
-    async def send_offer(self, request: SendOfferRequest) -> SendOfferResponse:
+    async def send_offer(self, request: SendOfferRequest, login: str) -> SendOfferResponse:
         """
         Send offer.
-
-        :param request: Send offer request data.
-        :return: Offer status.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/tradeoffer/new/send',
             data=request.to_request(),
             headers={
                 'Accept': '*/*',
-                'Accept-Encoding': 'gzip, deflate',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Origin': 'https://steamcommunity.com',
                 'Referer': request.tradelink(),
             },
             raise_for_status=False,
+            login=login,
         )
         return _send_offer_response_handler(response)
 
-    async def cancel_offer(self, tradeofferid: int) -> None:
+    async def cancel_offer(self, tradeofferid: int, login: str) -> None:
         """
         Cancel offer.
-
-        :param tradeofferid: Tradeofferid.
         """
         response = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/cancel',
             data={
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
             },
             headers={
                 'Accept': '*/*',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.account_api.steamid}/tradeoffers/sent/',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/sent/',
             },
             raise_for_status=False,
+            login=login,
         )
         return _cancel_offer_response_handler(response)
 
-    async def decline_offer(self, tradeofferid: int) -> None:
+    async def decline_offer(self, tradeofferid: int, login: str) -> None:
         """
         Decline offer.
 
@@ -69,19 +63,20 @@ class SteamTrade:
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/decline',
             data={
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
             },
             headers={
                 'Accept': '*/*',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{await self.account_api.steamid}/tradeoffers/',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/',
             },
             raise_for_status=False,
+            login=login,
         )
         return _decline_offer_response_handler(response)
 
-    async def accept_offer(self, tradeofferid: int, partner_steamid: int) -> int:
+    async def accept_offer(self, tradeofferid: int, partner_steamid: int, login: str) -> int:
         """
         Accept offer.
 
@@ -91,7 +86,7 @@ class SteamTrade:
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/accept',
             data={
-                'sessionid': await self.steam.sessionid(),
+                'sessionid': await self.steam.sessionid(login),
                 'serverid': '1',
                 'tradeofferid': str(tradeofferid),
                 'partner': str(partner_steamid),
@@ -104,5 +99,6 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/tradeoffer/{tradeofferid}/'
             },
             raise_for_status=False,
+            login=login,
         )
         return _accept_offer_response_handler(response)
