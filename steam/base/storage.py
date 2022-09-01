@@ -13,3 +13,6 @@ class BaseCookieStorage(CookieStorageAbstract):
 
     async def set(self, login: str, cookies: Dict) -> None:
         self.cookies[login] = cookies
+
+    async def clear(self, login: str) -> None:
+        self.cookies.pop(login, None)

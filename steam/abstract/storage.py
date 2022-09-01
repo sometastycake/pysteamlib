@@ -11,3 +11,7 @@ class CookieStorageAbstract(ABC):
     @abstractmethod
     async def get(self, login: str) -> Dict:
         ...
+
+    @abstractmethod
+    async def clear(self, login: str) -> None:
+        ...

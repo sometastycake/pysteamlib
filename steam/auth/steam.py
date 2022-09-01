@@ -11,18 +11,20 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 from bitstring import BitArray
 from lxml.html import HtmlElement, document_fromstring
 
+from steam.abstract.captcha import CaptchaSolverAbstract
 from steam.abstract.request import RequestStrategyAbstract
 from steam.abstract.storage import CookieStorageAbstract
-from steam.auth.captcha import solve_captcha_through_antigate
 from steam.auth.exceptions import (
     AccountAlreadyExistsError,
+    CaptchaGidNotFound,
     GetRsaError,
     IncorrectCredentials,
     InvalidAuthenticatorError,
     LoginError,
+    NotFoundAntigateApiKey,
     NotFoundAuthenticatorError,
     NotFoundMobileConfirmationError,
-    TooManyLoginError, NotFoundAntigateApiKey, CaptchaGidNotFound,
+    TooManyLoginError,
 )
 from steam.auth.schemas import (
     RSA,
@@ -34,12 +36,14 @@ from steam.auth.schemas import (
     ServerTimeResponse,
     SteamAuthorizationStatus,
 )
+from steam.base.captcha import BaseAntigateCaptchaSolver
 from steam.base.request import BaseRequestStrategy
 from steam.base.storage import BaseCookieStorage
 from steam.config import config
 
 CookieStorageType = TypeVar('CookieStorageType', bound=CookieStorageAbstract)
 RequestStrategyType = TypeVar('RequestStrategyType', bound=RequestStrategyAbstract)
+CaptchaSolverType = TypeVar('CaptchaSolverType', bound=CaptchaSolverAbstract)
 
 
 class Steam:
@@ -50,9 +54,11 @@ class Steam:
         self,
         storage_class: Type[CookieStorageType] = BaseCookieStorage,
         request_class: Type[RequestStrategyAbstract] = BaseRequestStrategy,
+        captcha_solver: Type[CaptchaSolverType] = BaseAntigateCaptchaSolver,
     ):
         self._session = request_class()
         self._storage = storage_class()
+        self._captcha_solver = captcha_solver()
         self._accounts: Dict[str, AccountData] = {}
 
     def steamid(self, login: str) -> int:
@@ -314,7 +320,13 @@ class Steam:
                 return await self.mobile_confirm(confirmation, login)
         raise NotFoundMobileConfirmationError(f'Not found confirmation for {tradeofferid}')
 
-    async def _login(self, request: LoginRequest, login: str, attempts: int = 3) -> Tuple[LoginResult, Dict]:
+    async def _login(
+        self,
+        request: LoginRequest,
+        login: str,
+        attempts: int = 3,
+        timeout_between_logins: Optional[float] = 1.0,
+    ) -> Tuple[LoginResult, Dict]:
         """
         Authorization.
         """
@@ -337,16 +349,22 @@ class Steam:
                 if not config.ANTIGATE_API_KEY:
                     raise NotFoundAntigateApiKey
 
-                request.captcha_text = await solve_captcha_through_antigate(result.captcha_url)
+                request.captcha_text = await self._captcha_solver(result.captcha_url)
                 request.captchagid = result.captcha_gid
 
-            elif result.requires_twofactor:
+            if result.requires_twofactor:
                 shared_secret = self.authenticator(login).shared_secret
                 request.twofactorcode = await self.get_steam_guard(shared_secret)
+
+            if timeout_between_logins:
+                await asyncio.sleep(timeout_between_logins)
+
             result, cookies = await self._do_login(request)
 
         if not result.success:
             raise LoginError(result.message)
+
+        return result, cookies
 
     async def login_to_steam(self, login: str) -> None:
         """
@@ -376,7 +394,7 @@ class Steam:
         })
         await self._storage.set(login=login, cookies=cookies)
 
-    async def login_all(self, timeout_between_logins: Optional[float] = None) -> None:
+    async def login_all(self, timeout_between_logins: Optional[float] = 1.0) -> None:
         """
         Login all accounts.
         """
