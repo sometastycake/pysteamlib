@@ -34,7 +34,7 @@ from steam.auth.schemas import (
     ServerTimeResponse,
     SteamAuthorizationStatus,
 )
-from steam.base.captcha import BaseAntigateCaptchaSolver
+from steam.base.captcha.captcha import BaseAntigateCaptchaSolver
 from steam.base.request import BaseRequestStrategy
 from steam.base.storage import BaseCookieStorage
 
@@ -53,7 +53,7 @@ class Steam:
         request_class: Type[RequestStrategyAbstract] = BaseRequestStrategy,
         captcha_solver: Type[CaptchaSolverType] = BaseAntigateCaptchaSolver,
     ):
-        self._session = request_class()
+        self._http = request_class()
         self._storage = storage_class()
         self._captcha_solver = captcha_solver()
         self._accounts: Dict[str, AccountData] = {}
@@ -89,7 +89,7 @@ class Steam:
 
     async def _get_sessionid_from_steam(self) -> str:
         """Get sessionid cookie from Steam."""
-        response = await self._session.request(
+        response = await self._http.request(
             method='GET',
             url='https://steamcommunity.com',
             cookies={
@@ -104,7 +104,7 @@ class Steam:
         Request with Steam session.
         """
         cookies = await self._storage.get(login)
-        response = await self._session.request(
+        response = await self._http.request(
             url=url,
             method=method,
             cookies={**cookies, **kwargs.pop('cookies', {})},
@@ -145,7 +145,7 @@ class Steam:
         """
         Authorization request.
         """
-        response = await self._session.request(
+        response = await self._http.request(
             method='POST',
             url='https://steamcommunity.com/login/dologin/',
             data=request.dict(),
@@ -163,7 +163,7 @@ class Steam:
         """
         Get server time.
         """
-        response = await self._session.request(
+        response = await self._http.request(
             method='POST',
             url='https://api.steampowered.com/ITwoFactorService/QueryTime/v0001',
         )
@@ -255,7 +255,7 @@ class Steam:
             server_time=server_time,
             identity_secret=self.authenticator(login).identity_secret,
         )
-        response = await self._session.request(
+        response = await self._http.request(
             url='https://steamcommunity.com/mobileconf/conf',
             method='GET',
             cookies=cookies,
@@ -288,7 +288,7 @@ class Steam:
             identity_secret=self.authenticator(login).identity_secret,
             tag='allow',
         )
-        response = await self._session.request(
+        response = await self._http.request(
             url='https://steamcommunity.com/mobileconf/ajaxop',
             method='GET',
             cookies=cookies,
