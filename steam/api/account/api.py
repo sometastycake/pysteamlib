@@ -263,7 +263,7 @@ class SteamAccount:
             url='https://store.steampowered.com/account/store_transactions/',
             headers={
                 'Accept': '*/*',
-                'Origin': 'https://steamcommunity.com',
+                'Upgrade-Insecure-Requests': '1',
             },
             login=login,
         )

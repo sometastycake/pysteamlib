@@ -28,3 +28,15 @@ class NotFoundMobileConfirmationError(Exception):
 
 class InvalidAuthenticatorError(Exception):
     """Invalid authenticator."""
+
+
+class TooManyLoginError(Exception):
+    ...
+
+
+class CaptchaGidNotFound(Exception):
+    ...
+
+
+class NotFoundAntigateApiKey(Exception):
+    ...

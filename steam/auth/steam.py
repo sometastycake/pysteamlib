@@ -13,6 +13,7 @@ from lxml.html import HtmlElement, document_fromstring
 
 from steam.abstract.request import RequestStrategyAbstract
 from steam.abstract.storage import CookieStorageAbstract
+from steam.auth.captcha import solve_captcha_through_antigate
 from steam.auth.exceptions import (
     AccountAlreadyExistsError,
     GetRsaError,
@@ -21,6 +22,7 @@ from steam.auth.exceptions import (
     LoginError,
     NotFoundAuthenticatorError,
     NotFoundMobileConfirmationError,
+    TooManyLoginError, NotFoundAntigateApiKey, CaptchaGidNotFound,
 )
 from steam.auth.schemas import (
     RSA,
@@ -34,6 +36,7 @@ from steam.auth.schemas import (
 )
 from steam.base.request import BaseRequestStrategy
 from steam.base.storage import BaseCookieStorage
+from steam.config import config
 
 CookieStorageType = TypeVar('CookieStorageType', bound=CookieStorageAbstract)
 RequestStrategyType = TypeVar('RequestStrategyType', bound=RequestStrategyAbstract)
@@ -320,9 +323,24 @@ class Steam:
         for _ in range(attempts):
             if result.success:
                 return result, cookies
+
             if result.is_credentials_incorrect():
                 raise IncorrectCredentials
-            if result.requires_twofactor:
+
+            if result.is_too_many_logins():
+                raise TooManyLoginError
+
+            if result.captcha_needed:
+                if not result.captcha_gid:
+                    raise CaptchaGidNotFound
+
+                if not config.ANTIGATE_API_KEY:
+                    raise NotFoundAntigateApiKey
+
+                request.captcha_text = await solve_captcha_through_antigate(result.captcha_url)
+                request.captchagid = result.captcha_gid
+
+            elif result.requires_twofactor:
                 shared_secret = self.authenticator(login).shared_secret
                 request.twofactorcode = await self.get_steam_guard(shared_secret)
             result, cookies = await self._do_login(request)

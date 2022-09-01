@@ -48,6 +48,12 @@ class LoginResult(BaseModel):
     clear_password_field: Optional[bool]
     oauth: Optional[OAuth]
     login_complete: Optional[bool]
+    captcha_needed: Optional[bool]
+    captcha_gid: Optional[str]
+
+    @property
+    def captcha_url(self) -> str:
+        return f'https://steamcommunity.com/login/rendercaptcha/?gid={self.captcha_gid}'
 
     def steam_login(self) -> str:
         if not self.oauth:
@@ -71,6 +77,12 @@ class LoginResult(BaseModel):
         msg = 'The account name or password that you have entered is incorrect'
         return msg in self.message
 
+    def is_too_many_logins(self) -> bool:
+        if self.success or not self.message:
+            return False
+        msg = 'There have been too many login failures from your network in a short time period.'
+        return msg in self.message
+
 
 class SteamAuthorizationStatus(BaseModel):
     logged_in: bool
@@ -91,6 +103,8 @@ class LoginRequest(BaseModel):
     rsatimestamp: int
     remember_login: str = '1'
     tokentype: str = '-1'
+    captchagid: str = '-1'
+    captcha_text: str = ''
     oauth_client_id: str = 'DE45CD61'
     oauth_scope: str = 'read_profile write_profile read_client write_client'
 
