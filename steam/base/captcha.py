@@ -3,12 +3,16 @@ import aiohttp
 from antigate import AntiGate
 
 from steam.abstract.captcha import CaptchaSolverAbstract
+from steam.base.exc import NotFoundAntigateApiKey
 from steam.config import config
 
 
 class BaseAntigateCaptchaSolver(CaptchaSolverAbstract):
 
     def _solve(self, path_to_file: str) -> str:
+        if not config.ANTIGATE_API_KEY:
+            raise NotFoundAntigateApiKey
+
         answer = AntiGate(
             api_key=config.ANTIGATE_API_KEY,
             captcha_file=path_to_file,

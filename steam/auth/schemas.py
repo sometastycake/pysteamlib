@@ -45,7 +45,6 @@ class LoginResult(BaseModel):
     success: bool
     requires_twofactor: bool
     message: Optional[str]
-    clear_password_field: Optional[bool]
     oauth: Optional[OAuth]
     login_complete: Optional[bool]
     captcha_needed: Optional[bool]
@@ -77,7 +76,7 @@ class LoginResult(BaseModel):
         msg = 'The account name or password that you have entered is incorrect'
         return msg in self.message
 
-    def is_too_many_logins(self) -> bool:
+    def is_too_many_authorizations(self) -> bool:
         if self.success or not self.message:
             return False
         msg = 'There have been too many login failures from your network in a short time period.'
