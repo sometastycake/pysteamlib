@@ -2,8 +2,10 @@ from typing import Any, Dict, Optional, Tuple
 
 import aiohttp
 
+from steam.abstract.request import RequestStrategyAbstract
 
-class BaseRequestStrategy:
+
+class BaseRequestStrategy(RequestStrategyAbstract):
 
     def __init__(self):
         self._session: Optional[aiohttp.ClientSession] = None
@@ -15,7 +17,7 @@ class BaseRequestStrategy:
     async def request(
             self,
             url: str,
-            method: str,
+            method: str = 'GET',
             cookies: Optional[Dict] = None,
             **kwargs: Any,
     ) -> Any:
@@ -23,7 +25,6 @@ class BaseRequestStrategy:
             self._session = aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(ssl=False),
                 raise_for_status=True,
-                cookie_jar=aiohttp.DummyCookieJar(),
             )
         return await self._session.request(method, url, cookies=cookies, **kwargs)
 
@@ -57,21 +58,14 @@ class BaseRequestStrategy:
         )
         return await response.json()
 
-    async def request_with_return_cookie(
-            self,
-            url: str,
-            method: str = 'GET',
-            cookies: Optional[Dict] = None,
-            **kwargs: Any,
-    ) -> Tuple[str, Dict[str, str]]:
-        response = await self.request(
-            url=url,
-            method=method,
-            cookies=cookies,
-            allow_redirects=False,
-            **kwargs,
-        )
-        cookies = {
-            k: v.value for k, v in response.cookies.items()
-        }
-        return await response.text(), cookies
+    def get_cookies(self, domain: str = 'steamcommunity.com') -> Dict[str, str]:
+        """
+        Aiohttp session saves and stores cookies.
+        It writes cookies from responses after each request that specified
+        in Set-Cookie header.
+        """
+        cookies = {}
+        for cookie in self._session.cookie_jar:
+            if cookie['domain'] == domain:
+                cookies[cookie.key] = cookie.value
+        return cookies

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 
 class RequestStrategyAbstract(ABC):
@@ -18,28 +18,22 @@ class RequestStrategyAbstract(ABC):
     async def request_with_text_response(
             self,
             url: str,
-            method: str = 'GET',
+            method: str,
             cookies: Optional[Dict] = None,
             **kwargs: Any,
-    ) -> Any:
+    ) -> str:
         ...
 
     @abstractmethod
     async def request_with_json_response(
             self,
             url: str,
-            method: str = 'GET',
+            method: str,
             cookies: Optional[Dict] = None,
             **kwargs: Any,
     ) -> Dict:
         ...
 
     @abstractmethod
-    async def request_with_return_cookie(
-            self,
-            url: str,
-            method: str = 'GET',
-            cookies: Optional[Dict] = None,
-            **kwargs: Any,
-    ) -> Tuple[str, Dict[str, str]]:
+    def get_cookies(self, domain: str = 'steamcommunity.com') -> Dict[str, str]:
         ...

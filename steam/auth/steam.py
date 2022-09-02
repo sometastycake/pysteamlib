@@ -6,7 +6,7 @@ import hmac
 import math
 import time
 from struct import pack
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from bitstring import BitArray
 from lxml.html import HtmlElement, document_fromstring
@@ -87,18 +87,6 @@ class Steam:
         """Sessionid cookie."""
         return (await self.cookies(login))['sessionid']
 
-    async def _get_sessionid_from_steam(self) -> str:
-        """Get sessionid cookie from Steam."""
-        _, cookies = await self._http.request_with_return_cookie(
-            method='GET',
-            url='https://steamcommunity.com',
-            cookies={
-                'mobileClient': 'ios',
-                'mobileClientVersion': '2.0.20',
-            },
-        )
-        return cookies['sessionid']
-
     async def request_for_login(self, url: str, login: str, method: str = 'GET', **kwargs: Any) -> str:
         """
         Request with Steam session for specified login.
@@ -144,11 +132,11 @@ class Steam:
         )
         return RSA.parse_raw(response)
 
-    async def _do_login(self, request: LoginRequest) -> Tuple[LoginResult, Dict]:
+    async def _do_login(self, request: LoginRequest) -> LoginResult:
         """
         Authorization request.
         """
-        response, cookies = await self._http.request_with_return_cookie(
+        response = await self._http.request_with_text_response(
             method='POST',
             url='https://steamcommunity.com/login/dologin/',
             data=request.dict(),
@@ -157,7 +145,7 @@ class Steam:
                 'mobileClientVersion': '2.0.20',
             },
         )
-        return LoginResult.parse_raw(response), cookies
+        return LoginResult.parse_raw(response)
 
     async def get_server_time(self) -> int:
         """
@@ -321,15 +309,15 @@ class Steam:
             login: str,
             attempts: int = 3,
             timeout_between_logins: Optional[float] = 1.0,
-    ) -> Tuple[LoginResult, Dict]:
+    ) -> LoginResult:
         """
         Authorization.
         """
-        result, cookies = await self._do_login(request)
+        result = await self._do_login(request)
 
         for _ in range(attempts):
             if result.success:
-                return result, cookies
+                return result
 
             if result.is_credentials_incorrect():
                 raise IncorrectCredentials
@@ -352,12 +340,12 @@ class Steam:
             if timeout_between_logins:
                 await asyncio.sleep(timeout_between_logins)
 
-            result, cookies = await self._do_login(request)
+            result = await self._do_login(request)
 
         if not result.success:
             raise LoginError(result.message)
 
-        return result, cookies
+        return result
 
     async def login_to_steam(self, login: str) -> None:
         """
@@ -365,8 +353,6 @@ class Steam:
         """
         if await self.is_authorized(login):
             return
-
-        sessionid = await self._get_sessionid_from_steam()
 
         keys = await self._getrsakey(login)
         if not keys.success:
@@ -378,15 +364,12 @@ class Steam:
             rsatimestamp=keys.timestamp,
         )
 
-        result, cookies = await self._login(request, login)
+        await self._login(request, login)
 
-        cookies.update({
-            'sessionid': sessionid,
-            'steamLogin': result.steam_login(),
-            'steamLoginSecure': result.steam_login_secure(),
-            'Steam_Language': 'russian',
-        })
-        await self._storage.set(login=login, cookies=cookies)
+        await self._storage.set(
+            login=login,
+            cookies=self._http.get_cookies(),
+        )
 
     async def login_all(self, timeout_between_logins: Optional[float] = 1.0) -> None:
         """
