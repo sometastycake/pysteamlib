@@ -273,3 +273,4 @@ class SteamAccount:
         page: HtmlElement = document_fromstring(response)
         balance = page.get_element_by_id('header_wallet_balance')
         return int(re.search(r'(\d+)', balance.text).group(1))
+
