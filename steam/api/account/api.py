@@ -29,7 +29,7 @@ class SteamAccount:
         """
         Get nickname history.
         """
-        response: str = await self.steam.request(
+        response: str = await self.steam.request_for_login(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxaliases/',
             headers={
@@ -46,7 +46,7 @@ class SteamAccount:
         """
         Change account language.
         """
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             method='POST',
             url='https://steamcommunity.com/actions/SetLanguage/',
             data={
@@ -67,7 +67,7 @@ class SteamAccount:
         """
         Get profile info.
         """
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
@@ -91,7 +91,7 @@ class SteamAccount:
         """
         Set profile info.
         """
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/',
             data=FormData(
@@ -119,7 +119,7 @@ class SteamAccount:
         """
         Get privacy settings.
         """
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
@@ -134,7 +134,7 @@ class SteamAccount:
         """
         Privacy settings.
         """
-        response: str = await self.steam.request(
+        response: str = await self.steam.request_for_login(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxsetprivacy/',
             data=FormData(
@@ -159,7 +159,7 @@ class SteamAccount:
         """
         Revoke api key.
         """
-        return await self.steam.request(
+        return await self.steam.request_for_login(
             url='https://steamcommunity.com/dev/revokekey',
             method='POST',
             data={
@@ -178,7 +178,7 @@ class SteamAccount:
         """
         Register api key.
         """
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             url='https://steamcommunity.com/dev/registerkey',
             method='POST',
             data={
@@ -206,7 +206,7 @@ class SteamAccount:
         """
         Register tradelink.
         """
-        token = await self.steam.request(
+        token = await self.steam.request_for_login(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/newtradeurl',
             data={
@@ -234,7 +234,7 @@ class SteamAccount:
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
             image = await file.read()
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             method='POST',
             url='https://steamcommunity.com/actions/FileUploader/',
             data=FormData(
@@ -259,12 +259,15 @@ class SteamAccount:
         """
         Get account balance.
         """
-        response = await self.steam.request(
+        response = await self.steam.request_for_login(
             url='https://store.steampowered.com/account/store_transactions/',
             headers={
                 'Accept': '*/*',
                 'Upgrade-Insecure-Requests': '1',
             },
+            # cookies={
+            #     'Steam_Language': 'russian',
+            # },
             login=login,
         )
         page: HtmlElement = document_fromstring(response)

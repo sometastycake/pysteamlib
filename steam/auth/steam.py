@@ -51,11 +51,11 @@ class Steam:
         self,
         storage_class: Type[CookieStorageType] = BaseCookieStorage,
         request_class: Type[RequestStrategyAbstract] = BaseRequestStrategy,
-        captcha_solver: Type[CaptchaSolverType] = BaseAntigateCaptchaSolver,
+        captcha_solver_class: Type[CaptchaSolverType] = BaseAntigateCaptchaSolver,
     ):
         self._http = request_class()
         self._storage = storage_class()
-        self._captcha_solver = captcha_solver()
+        self._captcha_solver = captcha_solver_class()
         self._accounts: Dict[str, AccountData] = {}
 
     def steamid(self, login: str) -> int:
@@ -89,7 +89,7 @@ class Steam:
 
     async def _get_sessionid_from_steam(self) -> str:
         """Get sessionid cookie from Steam."""
-        response = await self._http.request(
+        _, cookies = await self._http.request_with_return_cookie(
             method='GET',
             url='https://steamcommunity.com',
             cookies={
@@ -97,26 +97,29 @@ class Steam:
                 'mobileClientVersion': '2.0.20',
             },
         )
-        return response.cookies.get('sessionid').value
+        return cookies['sessionid']
 
-    async def request(self, url: str, login: str, method: str = 'GET', **kwargs: Any) -> str:
+    async def request_for_login(self, url: str, login: str, method: str = 'GET', **kwargs: Any) -> str:
         """
-        Request with Steam session.
+        Request with Steam session for specified login.
         """
         cookies = await self._storage.get(login)
-        response = await self._http.request(
+
+        return await self._http.request_with_text_response(
             url=url,
             method=method,
-            cookies={**cookies, **kwargs.pop('cookies', {})},
+            cookies={
+                **cookies,
+                **kwargs.pop('cookies', {}),
+            },
             **kwargs,
         )
-        return await response.text()
 
     async def is_authorized(self, login: str) -> bool:
         """
         Is alive authorization.
         """
-        response = await self.request(
+        response = await self.request_for_login(
             url='https://steamcommunity.com/chat/clientjstoken',
             login=login,
         )
@@ -126,7 +129,7 @@ class Steam:
         """
         Getting data for password encryption.
         """
-        response = await self.request(
+        response = await self.request_for_login(
             method='POST',
             url='https://steamcommunity.com/login/getrsakey/',
             data={
@@ -145,7 +148,7 @@ class Steam:
         """
         Authorization request.
         """
-        response = await self._http.request(
+        response, cookies = await self._http.request_with_return_cookie(
             method='POST',
             url='https://steamcommunity.com/login/dologin/',
             data=request.dict(),
@@ -154,20 +157,17 @@ class Steam:
                 'mobileClientVersion': '2.0.20',
             },
         )
-        cookies = {}
-        for name, value in response.cookies.items():
-            cookies[name] = value.value
-        return LoginResult.parse_raw(await response.text()), cookies
+        return LoginResult.parse_raw(response), cookies
 
     async def get_server_time(self) -> int:
         """
         Get server time.
         """
-        response = await self._http.request(
+        response = await self._http.request_with_text_response(
             method='POST',
             url='https://api.steampowered.com/ITwoFactorService/QueryTime/v0001',
         )
-        return ServerTimeResponse.parse_raw(await response.text()).response.server_time
+        return ServerTimeResponse.parse_raw(response).response.server_time
 
     async def get_steam_guard(self, shared_secret: str) -> str:
         """
@@ -255,7 +255,7 @@ class Steam:
             server_time=server_time,
             identity_secret=self.authenticator(login).identity_secret,
         )
-        response = await self._http.request(
+        response = await self._http.request_with_text_response(
             url='https://steamcommunity.com/mobileconf/conf',
             method='GET',
             cookies=cookies,
@@ -268,10 +268,9 @@ class Steam:
                 'tag': 'conf',
             },
         )
-        html = await response.text()
-        if '<div>Invalid authenticator</div>' in html:
+        if '<div>Invalid authenticator</div>' in response:
             raise InvalidAuthenticatorError
-        return self._parse_mobile_confirmations_response(html)
+        return self._parse_mobile_confirmations_response(response)
 
     async def mobile_confirm(self, confirmation: MobileConfirmation, login: str) -> bool:
         """
@@ -288,7 +287,7 @@ class Steam:
             identity_secret=self.authenticator(login).identity_secret,
             tag='allow',
         )
-        response = await self._http.request(
+        response = await self._http.request_with_json_response(
             url='https://steamcommunity.com/mobileconf/ajaxop',
             method='GET',
             cookies=cookies,
@@ -304,8 +303,7 @@ class Steam:
                 'ck': confirmation.confirmation_key,
             },
         )
-        content = await response.json()
-        return content['success']
+        return response['success']
 
     async def mobile_confirm_by_tradeofferid(self, tradeofferid: int, login: str) -> bool:
         """
@@ -318,11 +316,11 @@ class Steam:
         raise NotFoundMobileConfirmationError(f'Not found confirmation for {tradeofferid}')
 
     async def _login(
-        self,
-        request: LoginRequest,
-        login: str,
-        attempts: int = 3,
-        timeout_between_logins: Optional[float] = 1.0,
+            self,
+            request: LoginRequest,
+            login: str,
+            attempts: int = 3,
+            timeout_between_logins: Optional[float] = 1.0,
     ) -> Tuple[LoginResult, Dict]:
         """
         Authorization.
@@ -347,7 +345,9 @@ class Steam:
 
             if result.requires_twofactor:
                 shared_secret = self.authenticator(login).shared_secret
-                request.twofactorcode = await self.get_steam_guard(shared_secret)
+                request.twofactorcode = await self.get_steam_guard(
+                    shared_secret=shared_secret,
+                )
 
             if timeout_between_logins:
                 await asyncio.sleep(timeout_between_logins)
@@ -384,6 +384,7 @@ class Steam:
             'sessionid': sessionid,
             'steamLogin': result.steam_login(),
             'steamLoginSecure': result.steam_login_secure(),
+            'Steam_Language': 'russian',
         })
         await self._storage.set(login=login, cookies=cookies)
 
