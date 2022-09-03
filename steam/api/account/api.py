@@ -29,7 +29,7 @@ class SteamAccount:
         """
         Get nickname history.
         """
-        response: str = await self.steam.request_for_login(
+        response: str = await self.steam.http.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxaliases/',
             headers={
@@ -38,7 +38,7 @@ class SteamAccount:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/',
                 'Origin': 'https://steamcommunity.com',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return NicknameHistory.parse_raw(response)
 
@@ -46,7 +46,7 @@ class SteamAccount:
         """
         Change account language.
         """
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             method='POST',
             url='https://steamcommunity.com/actions/SetLanguage/',
             data={
@@ -59,7 +59,7 @@ class SteamAccount:
                 'X-Requested-With:': 'XMLHttpRequest',
                 'Origin': 'https://steamcommunity.com',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return True if response == 'true' else False
 
@@ -67,12 +67,12 @@ class SteamAccount:
         """
         Get profile info.
         """
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
@@ -91,7 +91,7 @@ class SteamAccount:
         """
         Set profile info.
         """
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/',
             data=FormData(
@@ -109,7 +109,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         result = ProfileInfoResponse.parse_raw(response)
         _check_steam_error_from_response(result)
@@ -119,12 +119,12 @@ class SteamAccount:
         """
         Get privacy settings.
         """
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
@@ -134,7 +134,7 @@ class SteamAccount:
         """
         Privacy settings.
         """
-        response: str = await self.steam.request_for_login(
+        response: str = await self.steam.http.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxsetprivacy/',
             data=FormData(
@@ -149,7 +149,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/settings',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         result = PrivacyResponse.parse_raw(response)
         _check_steam_error_from_response(result)
@@ -159,7 +159,7 @@ class SteamAccount:
         """
         Revoke api key.
         """
-        await self.steam.request_for_login(
+        await self.steam.http.request(
             url='https://steamcommunity.com/dev/revokekey',
             method='POST',
             data={
@@ -171,14 +171,18 @@ class SteamAccount:
                 'Referer': 'https://steamcommunity.com/dev/apikey',
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
 
     async def register_api_key(self, domain: str, login: str) -> str:
         """
         Register api key.
         """
-        response = await self.steam.request_for_login(
+        cookies = await self.steam.cookies(login)
+        cookies.update({
+            'Steam_Language': 'english',
+        })
+        response = await self.steam.http.request(
             url='https://steamcommunity.com/dev/registerkey',
             method='POST',
             data={
@@ -191,10 +195,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
             },
-            cookies={
-                'Steam_Language': 'english',
-            },
-            login=login,
+            cookies=cookies,
         )
 
         error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
@@ -209,7 +210,7 @@ class SteamAccount:
         """
         Register tradelink.
         """
-        token = await self.steam.request_for_login(
+        token = await self.steam.http.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/newtradeurl',
             data={
@@ -222,7 +223,7 @@ class SteamAccount:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/privacy',
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
 
         params = {
@@ -237,7 +238,7 @@ class SteamAccount:
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
             image = await file.read()
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             method='POST',
             url='https://steamcommunity.com/actions/FileUploader/',
             data=FormData(
@@ -254,7 +255,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/avatar',
             },
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return AvatarResponse.parse_raw(response)
 
@@ -266,13 +267,13 @@ class SteamAccount:
             url='https://store.steampowered.com/account/',
             cookies=await self.steam.cookies(login),
         )
-        response = await self.steam.request_for_login(
+        cookies.update(await self.steam.cookies(login))
+        response = await self.steam.http.request(
             url='https://store.steampowered.com/account/',
             headers={
                 'Accept': '*/*',
                 'Upgrade-Insecure-Requests': '1',
             },
-            login=login,
             cookies=cookies,
         )
         page: HtmlElement = document_fromstring(response)

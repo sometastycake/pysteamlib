@@ -6,7 +6,7 @@ import hmac
 import math
 import time
 from struct import pack
-from typing import Any, Dict, Optional, Tuple, Type, TypeVar
+from typing import Dict, Optional, Tuple, Type, TypeVar
 
 from bitstring import BitArray
 
@@ -87,29 +87,13 @@ class Steam:
         """Sessionid cookie."""
         return (await self.cookies(login))['sessionid']
 
-    async def request_for_login(self, url: str, login: str, method: str = 'GET', **kwargs: Any) -> str:
-        """
-        Request with Steam session for specified login.
-        """
-        cookies = await self._storage.get(login)
-
-        return await self._http.request(
-            url=url,
-            method=method,
-            cookies={
-                **cookies,
-                **kwargs.pop('cookies', {}),
-            },
-            **kwargs,
-        )
-
     async def is_authorized(self, login: str) -> bool:
         """
         Is alive authorization.
         """
-        response = await self.request_for_login(
+        response = await self._http.request(
             url='https://steamcommunity.com/chat/clientjstoken',
-            login=login,
+            cookies=await self._storage.get(login),
         )
         return SteamAuthorizationStatus.parse_raw(response).logged_in
 
@@ -117,14 +101,13 @@ class Steam:
         """
         Getting data for password encryption.
         """
-        response = await self.request_for_login(
+        response = await self._http.request(
             method='POST',
             url='https://steamcommunity.com/login/getrsakey/',
             data={
                 'donotcache': int(time.time()),
                 'username': login,
             },
-            login=login,
             cookies={
                 'mobileClient': 'ios',
                 'mobileClientVersion': '2.0.20',
