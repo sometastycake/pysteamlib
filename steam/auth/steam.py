@@ -19,7 +19,7 @@ from steam.auth.exc import (
     IncorrectCredentialsError,
     LoginError,
     NotFoundAuthenticatorError,
-    TooManyAuthorizations,
+    TooManyAuthorizationsError,
 )
 from steam.auth.schemas import (
     RSA,
@@ -189,7 +189,9 @@ class Steam:
 
     def get_confirmation_hash(self, server_time: int, identity_secret: str, tag: str = 'conf') -> str:
         """
-        Get confirmation hash.
+        Get mobile confirmation hash.
+
+        :return: Mobile confirmation hash.
         """
         identitysecret = base64.b64decode(identity_secret)
         secret = BitArray(
@@ -212,7 +214,9 @@ class Steam:
 
     async def _login(self, request: LoginRequest, login: str) -> Tuple[LoginResult, Dict[str, str]]:
         """
-        Authorization.
+        Authorization processing.
+
+        :return: Authorization result and Steam cookies.
         """
         result, cookies = await self._do_login(request)
 
@@ -221,10 +225,10 @@ class Steam:
                 return result, cookies
 
             if result.is_credentials_incorrect():
-                raise IncorrectCredentialsError
+                raise IncorrectCredentialsError(login=login)
 
             if result.is_too_many_authorizations():
-                raise TooManyAuthorizations
+                raise TooManyAuthorizationsError(login=login)
 
             if result.captcha_needed:
                 request.captcha_text = await self._captcha_solver(
@@ -241,12 +245,16 @@ class Steam:
             result, cookies = await self._do_login(request)
 
         if not result.success:
-            raise LoginError(result.message)
+            raise LoginError(login=login, msg=result.message)
 
         return result, cookies
 
     async def _get_sessionid_from_steam(self) -> str:
-        """Get sessionid cookie from Steam."""
+        """
+        Get sessionid cookie from Steam.
+
+        :return: Sessionid cookie.
+        """
         _, cookies = await self._http.request_with_cookie_return(
             method='GET',
             url='https://steamcommunity.com',
@@ -268,7 +276,7 @@ class Steam:
 
         keys = await self._getrsakey(login)
         if not keys.success:
-            raise GetRsaError
+            raise GetRsaError(login=login)
 
         request = LoginRequest(
             password=keys.encrypt_password(self.password(login)),
@@ -286,7 +294,7 @@ class Steam:
 
         await self._storage.set(login=login, cookies=cookies)
 
-    async def login_all(self, timeout_between_logins: Optional[float] = 1.0) -> None:
+    async def login_all(self, timeout_between_logins: Optional[float] = 5.0) -> None:
         """
         Login all accounts.
         """
