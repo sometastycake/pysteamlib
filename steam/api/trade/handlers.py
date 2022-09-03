@@ -1,7 +1,7 @@
 import json
 
-from steam._api.trade.exceptions import SteamNullResponseError
-from steam._api.trade.schemas import SendOfferResponse, SteamOfferError
+from steam.api.trade.exc import SteamNullResponseError
+from steam.api.trade.schemas import SendOfferResponse, SteamOfferError
 from steam.errors import STEAM_ERROR_CODES
 from steam.exceptions import SteamError, UnknownSteamError
 
@@ -31,7 +31,7 @@ def _cancel_offer_response_handler(response: str) -> None:
         error = content['success']
         if error in STEAM_ERROR_CODES:
             raise SteamError(error_code=error)
-        raise UnknownSteamError(f'Unknown Steam error "{error}"')
+        raise UnknownSteamError(error_code=error)
 
 
 def _decline_offer_response_handler(response: str) -> None:
@@ -43,7 +43,7 @@ def _decline_offer_response_handler(response: str) -> None:
         error = content['success']
         if error in STEAM_ERROR_CODES:
             raise SteamError(error_code=error)
-        raise UnknownSteamError(f'Unknown Steam error "{error}"')
+        raise UnknownSteamError(error_code=error)
 
 
 def _accept_offer_response_handler(response: str) -> int:

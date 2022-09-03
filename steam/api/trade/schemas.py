@@ -5,7 +5,7 @@ from typing import Dict, List
 from pydantic import BaseModel
 from yarl import URL
 
-from steam._api.trade.exceptions import (
+from steam.api.trade.exc import (
     AccountOverflowError,
     ProfileSettingsError,
     SteamServerDownError,
@@ -102,3 +102,9 @@ class SteamOfferError(BaseModel):
         for error in errors:
             if error in self.strError:
                 raise errors[error]
+
+
+class MobileConfirmation(BaseModel):
+    confirmation_id: int
+    confirmation_key: int
+    tradeofferid: int

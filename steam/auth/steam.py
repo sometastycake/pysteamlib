@@ -3,14 +3,12 @@ import base64
 import binascii
 import hashlib
 import hmac
-import json
 import math
 import time
 from struct import pack
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Dict, Optional, Tuple, Type, TypeVar
 
 from bitstring import BitArray
-from lxml.html import HtmlElement, document_fromstring
 
 from steam.abstract.captcha import CaptchaSolverAbstract
 from steam.abstract.request import RequestStrategyAbstract
@@ -19,10 +17,8 @@ from steam.auth.exc import (
     AccountAlreadyExistsError,
     GetRsaError,
     IncorrectCredentials,
-    InvalidAuthenticatorError,
     LoginError,
     NotFoundAuthenticatorError,
-    NotFoundMobileConfirmationError,
     TooManyAuthorizations,
 )
 from steam.auth.schemas import (
@@ -31,7 +27,6 @@ from steam.auth.schemas import (
     Authenticator,
     LoginRequest,
     LoginResult,
-    MobileConfirmation,
     ServerTimeResponse,
     SteamAuthorizationStatus,
 )
@@ -192,7 +187,7 @@ class Steam:
 
         return code
 
-    def _get_confirmation_hash(self, server_time: int, identity_secret: str, tag: str = 'conf') -> str:
+    def get_confirmation_hash(self, server_time: int, identity_secret: str, tag: str = 'conf') -> str:
         """
         Get confirmation hash.
         """
@@ -214,99 +209,6 @@ class Steam:
             digestmod=hashlib.sha1,
         )
         return str(base64.b64encode(confirmation.digest()), 'utf8')
-
-    def _parse_mobile_confirmations_response(self, response: str) -> List[MobileConfirmation]:
-        """
-        Parse mobile confirmations response.
-        """
-        page: HtmlElement = document_fromstring(response)
-        raw_confirmations: List[HtmlElement] = page.cssselect('#mobileconf_list > .mobileconf_list_entry')
-        if not raw_confirmations:
-            return []
-        confirmations = []
-        for confirmation in raw_confirmations:
-            confirmations.append(MobileConfirmation(
-                confirmation_id=int(confirmation.attrib['data-confid']),
-                confirmation_key=int(confirmation.attrib['data-key']),
-                tradeofferid=int(confirmation.attrib['data-creator']),
-            ))
-        return confirmations
-
-    async def get_mobile_confirmations(self, login: str) -> List[MobileConfirmation]:
-        """
-        Get mobile confirmations.
-        """
-        cookies = await self._storage.get(login)
-        cookies.update({
-            'mobileClient': 'ios',
-            'mobileClientVersion': '2.0.20',
-            'steamid': str(self.steamid(login)),
-            'Steam_Language': 'english',
-        })
-        server_time = await self.get_server_time()
-        confirmation_hash = self._get_confirmation_hash(
-            server_time=server_time,
-            identity_secret=self.authenticator(login).identity_secret,
-        )
-        response = await self._http.request(
-            url='https://steamcommunity.com/mobileconf/conf',
-            method='GET',
-            cookies=cookies,
-            params={
-                'p': self.authenticator(login).device_id,
-                'a': str(self.steamid(login)),
-                'k': confirmation_hash,
-                't': server_time,
-                'm': 'ios',
-                'tag': 'conf',
-            },
-        )
-        if '<div>Invalid authenticator</div>' in response:
-            raise InvalidAuthenticatorError
-        return self._parse_mobile_confirmations_response(response)
-
-    async def mobile_confirm(self, confirmation: MobileConfirmation, login: str) -> bool:
-        """
-        Mobile confirm.
-        """
-        cookies = await self._storage.get(login)
-        cookies.update({
-            'mobileClient': 'ios',
-            'mobileClientVersion': '2.0.20',
-        })
-        server_time = await self.get_server_time()
-        confirmation_hash = self._get_confirmation_hash(
-            server_time=server_time,
-            identity_secret=self.authenticator(login).identity_secret,
-            tag='allow',
-        )
-        response = await self._http.request(
-            url='https://steamcommunity.com/mobileconf/ajaxop',
-            method='GET',
-            cookies=cookies,
-            params={
-                'op': 'allow',
-                'p': self.authenticator(login).device_id,
-                'a': str(self.steamid(login)),
-                'k': confirmation_hash,
-                't': server_time,
-                'm': 'ios',
-                'tag': 'allow',
-                'cid': confirmation.confirmation_id,
-                'ck': confirmation.confirmation_key,
-            },
-        )
-        return json.loads(response)['success']
-
-    async def mobile_confirm_by_tradeofferid(self, tradeofferid: int, login: str) -> bool:
-        """
-        Mobile confirm by tradeofferid.
-        """
-        confirmations = await self.get_mobile_confirmations(login)
-        for confirmation in confirmations:
-            if confirmation.tradeofferid == tradeofferid:
-                return await self.mobile_confirm(confirmation, login)
-        raise NotFoundMobileConfirmationError(f'Not found confirmation for {tradeofferid}')
 
     async def _login(self, request: LoginRequest, login: str) -> Tuple[LoginResult, Dict[str, str]]:
         """

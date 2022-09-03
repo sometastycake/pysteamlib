@@ -22,13 +22,5 @@ class AccountAlreadyExistsError(Exception):
     """Account already exists in SteamAuth."""
 
 
-class NotFoundMobileConfirmationError(Exception):
-    """Error when searching for exchanges waiting for mobile confirmation."""
-
-
-class InvalidAuthenticatorError(Exception):
-    """Invalid authenticator."""
-
-
 class TooManyAuthorizations(Exception):
     """Too many authorizations."""

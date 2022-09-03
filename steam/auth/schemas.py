@@ -108,12 +108,6 @@ class LoginRequest(BaseModel):
     oauth_scope: str = 'read_profile write_profile read_client write_client'
 
 
-class MobileConfirmation(BaseModel):
-    confirmation_id: int
-    confirmation_key: int
-    tradeofferid: int
-
-
 class ServerTime(BaseModel):
     server_time: int
     skew_tolerance_seconds: int
