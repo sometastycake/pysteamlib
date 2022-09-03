@@ -155,11 +155,11 @@ class SteamAccount:
         _check_steam_error_from_response(result)
         return result
 
-    async def revoke_api_key(self, login: str) -> str:
+    async def revoke_api_key(self, login: str) -> None:
         """
         Revoke api key.
         """
-        return await self.steam.request_for_login(
+        await self.steam.request_for_login(
             url='https://steamcommunity.com/dev/revokekey',
             method='POST',
             data={
@@ -241,7 +241,7 @@ class SteamAccount:
                 fields=[
                     ('avatar', image),
                     ('type', 'player_avatar_image'),
-                    ('sId', self.steam.steamid(login)),
+                    ('sId', str(self.steam.steamid(login))),
                     ('sessionid', await self.steam.sessionid(login)),
                     ('doSub', '1'),
                     ('json', '1'),
