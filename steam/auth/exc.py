@@ -1,12 +1,24 @@
 class LoginError(Exception):
-    ...
+
+    def __init__(self, login: str):
+        self.login = login
+
+    def __str__(self) -> str:
+        return str({
+            'exception': self.__class__.__name__,
+            'login': self.login,
+        })
 
 
 class GetRsaError(LoginError):
-    ...
+    """Error in receiving keys for password encryption."""
 
 
-class IncorrectCredentials(LoginError):
+class TooManyAuthorizations(LoginError):
+    """Too many authorizations."""
+
+
+class IncorrectCredentialsError(LoginError):
     """Incorrect user credentials."""
 
 
@@ -20,7 +32,3 @@ class NotFoundAccountError(Exception):
 
 class AccountAlreadyExistsError(Exception):
     """Account already exists in SteamAuth."""
-
-
-class TooManyAuthorizations(Exception):
-    """Too many authorizations."""

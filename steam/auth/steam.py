@@ -16,7 +16,7 @@ from steam.abstract.storage import CookieStorageAbstract
 from steam.auth.exc import (
     AccountAlreadyExistsError,
     GetRsaError,
-    IncorrectCredentials,
+    IncorrectCredentialsError,
     LoginError,
     NotFoundAuthenticatorError,
     TooManyAuthorizations,
@@ -221,7 +221,7 @@ class Steam:
                 return result, cookies
 
             if result.is_credentials_incorrect():
-                raise IncorrectCredentials
+                raise IncorrectCredentialsError
 
             if result.is_too_many_authorizations():
                 raise TooManyAuthorizations
