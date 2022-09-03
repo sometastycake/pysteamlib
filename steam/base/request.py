@@ -17,6 +17,10 @@ class BaseRequestStrategy(RequestStrategyAbstract):
     def _create_session(self) -> aiohttp.ClientSession:
         """
         Create aiohttp session.
+        Aiohttp session saves and stores cookies.
+        It writes cookies from responses after each request that specified
+        in Set-Cookie header. This is undesirable behavior, so by using DummyCookies we disable
+        autosave of cookies within the aiohttp session.
 
         :return: aiohttp.ClientSession object.
         """
