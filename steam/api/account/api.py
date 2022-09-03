@@ -191,6 +191,9 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
             },
+            cookies={
+                'Steam_Language': 'english',
+            },
             login=login,
         )
 
@@ -260,7 +263,7 @@ class SteamAccount:
         Get account balance.
         """
         response = await self.steam.request_for_login(
-            url='https://store.steampowered.com/account/store_transactions/',
+            url='https://store.steampowered.com/account/',
             headers={
                 'Accept': '*/*',
                 'Upgrade-Insecure-Requests': '1',
@@ -268,5 +271,5 @@ class SteamAccount:
             login=login,
         )
         page: HtmlElement = document_fromstring(response)
-        balance = page.get_element_by_id('header_wallet_balance')
-        return int(re.search(r'(\d+)', balance.text).group(1))
+        balance = page.cssselect('.accountBalance > .price')
+        return int(re.search(r'(\d+)', balance[0].text).group(1))
