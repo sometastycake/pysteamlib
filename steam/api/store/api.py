@@ -1,13 +1,12 @@
-from session import Session
+import json
 
-from steam._api.store.schemas import GamePrice
+from steam.api.store.schemas import GamePrice
 from steam.auth.steam import Steam
 
 
-class SteamStore(Session):
+class SteamStore:
 
     def __init__(self, steam: Steam):
-        super().__init__()
         self.steam = steam
 
     async def game_price(self, appid: str) -> GamePrice:
@@ -16,7 +15,7 @@ class SteamStore(Session):
 
         :return: Game price.
         """
-        response = await self.session.get(
+        response = await self.steam.http.request(
             url='https://store.steampowered.com/api/appdetails',
             params={
                 'appids': appid,
@@ -24,5 +23,5 @@ class SteamStore(Session):
                 'filters': 'price_overview',
             },
         )
-        content = await response.json()
+        content = json.loads(response)
         return GamePrice.parse_obj(content[appid])

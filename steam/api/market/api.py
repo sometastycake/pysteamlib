@@ -11,16 +11,17 @@ class SteamMarket:
         """
         Is market available.
         """
-        response = await self.steam.request(
+        cookies = await self.steam.cookies(login)
+        cookies.update({
+            'Steam_Language': 'english',
+        })
+        response = await self.steam.http.request(
             url='https://steamcommunity.com/market/',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
                 'Upgrade-Insecure-Requests': '1',
             },
-            cookies={
-                'Steam_Language': 'english',
-            },
-            login=login,
+            cookies=cookies,
         )
         return 'The Market is unavailable for the following reason(s):' not in response
 
@@ -28,7 +29,7 @@ class SteamMarket:
         """
         Price history.
         """
-        response = await self.steam.request(
+        response = await self.steam.http.request(
             url='https://steamcommunity.com/market/pricehistory/',
             params={
                 'country': 'US',
@@ -37,6 +38,6 @@ class SteamMarket:
                 'market_hash_name': market_hash_name,
             },
             raise_for_status=False,
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return PriceHistoryResponse.parse_raw(response)

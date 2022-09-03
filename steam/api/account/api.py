@@ -17,7 +17,7 @@ from steam.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steam.auth.steam import Steam
-from steam.callbacks import _check_steam_error_from_response
+from steam.callbacks import check_steam_error_from_response
 
 
 class SteamAccount:
@@ -112,7 +112,7 @@ class SteamAccount:
             cookies=await self.steam.cookies(login),
         )
         result = ProfileInfoResponse.parse_raw(response)
-        _check_steam_error_from_response(result)
+        check_steam_error_from_response(result)
         return result
 
     async def get_current_privacy(self, login: str) -> PrivacyInfo:
@@ -152,7 +152,7 @@ class SteamAccount:
             cookies=await self.steam.cookies(login),
         )
         result = PrivacyResponse.parse_raw(response)
-        _check_steam_error_from_response(result)
+        check_steam_error_from_response(result)
         return result
 
     async def revoke_api_key(self, login: str) -> None:

@@ -1,11 +1,14 @@
+import json
 from typing import Dict
 
-from session import Session
+from steam.api.inventory.exc import NullInventoryError, PrivateInventoryError, UnknownInventoryError
+from steam.auth.steam import Steam
 
-from steam._api.inventory.exceptions import PrivateInventoryError, UnknownInventoryError
 
+class SteamInventory:
 
-class SteamInventory(Session):
+    def __init__(self, steam: Steam):
+        self.steam = steam
 
     async def _inventory(self, steamid: int, appid: str, contextid: int = 2, start: int = 0) -> Dict:
         """
@@ -13,7 +16,7 @@ class SteamInventory(Session):
 
         :return: Inventory.
         """
-        response = await self.session.get(
+        response = await self.steam.http.request(
             url=f'https://steamcommunity.com/profiles/{steamid}/inventory/json/{appid}/{contextid}',
             params={
                 'l': 'english',
@@ -23,7 +26,9 @@ class SteamInventory(Session):
                 'Content-Type': 'application/json',
             },
         )
-        return await response.json()
+        if response == 'null':
+            raise NullInventoryError(steamid=steamid, appid=appid)
+        return json.loads(response)
 
     async def get_inventory(self, steamid: int, appid: str, contextid: int = 2):
         """
@@ -41,9 +46,9 @@ class SteamInventory(Session):
             if not response['success']:
                 error = response.get('Error', '')
                 if not error:
-                    raise UnknownInventoryError
+                    raise UnknownInventoryError(steamid=steamid, appid=appid)
                 if error == 'This profile is private.':
-                    raise PrivateInventoryError
+                    raise PrivateInventoryError(steamid=steamid, appid=appid)
             inventory['rgInventory'].update(response['rgInventory'])
             inventory['rgDescriptions'].update(response['rgDescriptions'])
             if response['more']:

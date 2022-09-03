@@ -1,24 +1,21 @@
-from steam._api.account.api import SteamAccount  # noqa
-from steam._api.inventory.api import SteamInventory  # noqa
-from steam._api.market.api import SteamMarket  # noqa
-from steam._api.public.api import SteamPublic  # noqa
-from steam._api.store.api import SteamStore  # noqa
-from steam._api.support.api import SteamSupport  # noqa
-from steam._api.trade.api import SteamTrade  # noqa
+from steam.api.account.api import SteamAccount
+from steam.api.inventory.api import SteamInventory
+from steam.api.market.api import SteamMarket
+from steam.api.store.api import SteamStore
+from steam.api.support.api import SteamSupport
+from steam.api.trade.api import SteamTrade
 from steam.auth.steam import Steam
 
 
 class SteamAPI:
 
     def __init__(self, steam: Steam):
-        self.steam = steam
         self._account = SteamAccount(steam)
-        self._inventory = SteamInventory()
+        self._inventory = SteamInventory(steam)
         self._market = SteamMarket(steam)
-        self._public = SteamPublic()
         self._store = SteamStore(steam)
         self._support = SteamSupport(steam)
-        self._trade = SteamTrade(steam, self._account)
+        self._trade = SteamTrade(steam)
 
     @property
     def account(self) -> SteamAccount:
@@ -31,10 +28,6 @@ class SteamAPI:
     @property
     def market(self) -> SteamMarket:
         return self._market
-
-    @property
-    def public(self) -> SteamPublic:
-        return self._public
 
     @property
     def store(self) -> SteamStore:

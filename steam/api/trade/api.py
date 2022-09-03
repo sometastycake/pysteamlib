@@ -23,7 +23,7 @@ class SteamTrade:
         """
         Send offer.
         """
-        response: str = await self.steam.request_for_login(
+        response: str = await self.steam.http.request(
             method='POST',
             url='https://steamcommunity.com/tradeoffer/new/send',
             data=request.to_request(),
@@ -34,7 +34,7 @@ class SteamTrade:
                 'Referer': request.tradelink(),
             },
             raise_for_status=False,
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return _send_offer_response_handler(response)
 
@@ -42,7 +42,7 @@ class SteamTrade:
         """
         Cancel offer.
         """
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/cancel',
             data={
@@ -55,7 +55,7 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/sent/',
             },
             raise_for_status=False,
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return _cancel_offer_response_handler(response)
 
@@ -65,7 +65,7 @@ class SteamTrade:
 
         :param tradeofferid: Tradeofferid.
         """
-        response = await self.steam.request_for_login(
+        response = await self.steam.http.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/decline',
             data={
@@ -78,7 +78,7 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/tradeoffers/',
             },
             raise_for_status=False,
-            login=login,
+            cookies=await self.steam.cookies(login),
         )
         return _decline_offer_response_handler(response)
 
