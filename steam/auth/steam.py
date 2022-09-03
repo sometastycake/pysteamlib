@@ -3,10 +3,11 @@ import base64
 import binascii
 import hashlib
 import hmac
+import json
 import math
 import time
 from struct import pack
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 from bitstring import BitArray
 from lxml.html import HtmlElement, document_fromstring
@@ -58,6 +59,10 @@ class Steam:
         self._captcha_solver = captcha_solver_class()
         self._accounts: Dict[str, AccountData] = {}
 
+    @property
+    def http(self) -> RequestStrategyAbstract:
+        return self._http
+
     def steamid(self, login: str) -> int:
         """Get steamid."""
         return self._accounts[login].steamid
@@ -93,7 +98,7 @@ class Steam:
         """
         cookies = await self._storage.get(login)
 
-        return await self._http.request_with_text_response(
+        return await self._http.request(
             url=url,
             method=method,
             cookies={
@@ -132,11 +137,11 @@ class Steam:
         )
         return RSA.parse_raw(response)
 
-    async def _do_login(self, request: LoginRequest) -> LoginResult:
+    async def _do_login(self, request: LoginRequest) -> Tuple[LoginResult, Dict[str, str]]:
         """
         Authorization request.
         """
-        response = await self._http.request_with_text_response(
+        response, cookies = await self._http.request_with_cookie_return(
             method='POST',
             url='https://steamcommunity.com/login/dologin/',
             data=request.dict(),
@@ -145,13 +150,13 @@ class Steam:
                 'mobileClientVersion': '2.0.20',
             },
         )
-        return LoginResult.parse_raw(response)
+        return LoginResult.parse_raw(response), cookies
 
     async def get_server_time(self) -> int:
         """
         Get server time.
         """
-        response = await self._http.request_with_text_response(
+        response = await self._http.request(
             method='POST',
             url='https://api.steampowered.com/ITwoFactorService/QueryTime/v0001',
         )
@@ -243,7 +248,7 @@ class Steam:
             server_time=server_time,
             identity_secret=self.authenticator(login).identity_secret,
         )
-        response = await self._http.request_with_text_response(
+        response = await self._http.request(
             url='https://steamcommunity.com/mobileconf/conf',
             method='GET',
             cookies=cookies,
@@ -275,7 +280,7 @@ class Steam:
             identity_secret=self.authenticator(login).identity_secret,
             tag='allow',
         )
-        response = await self._http.request_with_json_response(
+        response = await self._http.request(
             url='https://steamcommunity.com/mobileconf/ajaxop',
             method='GET',
             cookies=cookies,
@@ -291,7 +296,7 @@ class Steam:
                 'ck': confirmation.confirmation_key,
             },
         )
-        return response['success']
+        return json.loads(response)['success']
 
     async def mobile_confirm_by_tradeofferid(self, tradeofferid: int, login: str) -> bool:
         """
@@ -303,21 +308,15 @@ class Steam:
                 return await self.mobile_confirm(confirmation, login)
         raise NotFoundMobileConfirmationError(f'Not found confirmation for {tradeofferid}')
 
-    async def _login(
-            self,
-            request: LoginRequest,
-            login: str,
-            attempts: int = 3,
-            timeout_between_logins: Optional[float] = 1.0,
-    ) -> LoginResult:
+    async def _login(self, request: LoginRequest, login: str) -> Tuple[LoginResult, Dict[str, str]]:
         """
         Authorization.
         """
-        result = await self._do_login(request)
+        result, cookies = await self._do_login(request)
 
-        for _ in range(attempts):
+        for _ in range(3):
             if result.success:
-                return result
+                return result, cookies
 
             if result.is_credentials_incorrect():
                 raise IncorrectCredentials
@@ -337,15 +336,24 @@ class Steam:
                     shared_secret=shared_secret,
                 )
 
-            if timeout_between_logins:
-                await asyncio.sleep(timeout_between_logins)
-
-            result = await self._do_login(request)
+            result, cookies = await self._do_login(request)
 
         if not result.success:
             raise LoginError(result.message)
 
-        return result
+        return result, cookies
+
+    async def _get_sessionid_from_steam(self) -> str:
+        """Get sessionid cookie from Steam."""
+        _, cookies = await self._http.request_with_cookie_return(
+            method='GET',
+            url='https://steamcommunity.com',
+            cookies={
+                'mobileClient': 'ios',
+                'mobileClientVersion': '2.0.20',
+            },
+        )
+        return cookies['sessionid']
 
     async def login_to_steam(self, login: str) -> None:
         """
@@ -353,6 +361,8 @@ class Steam:
         """
         if await self.is_authorized(login):
             return
+
+        sessionid = await self._get_sessionid_from_steam()
 
         keys = await self._getrsakey(login)
         if not keys.success:
@@ -364,18 +374,21 @@ class Steam:
             rsatimestamp=keys.timestamp,
         )
 
-        await self._login(request, login)
+        result, cookies = await self._login(request, login)
 
-        await self._storage.set(
-            login=login,
-            cookies=self._http.get_cookies(),
-        )
+        cookies.update({
+            'sessionid': sessionid,
+            'steamLogin': result.steam_login(),
+            'steamLoginSecure': result.steam_login_secure(),
+        })
+
+        await self._storage.set(login=login, cookies=cookies)
 
     async def login_all(self, timeout_between_logins: Optional[float] = 1.0) -> None:
         """
         Login all accounts.
         """
-        for login in self._accounts:
+        for login in list(self._accounts):
             await self.login_to_steam(login)
             if timeout_between_logins:
                 await asyncio.sleep(timeout_between_logins)

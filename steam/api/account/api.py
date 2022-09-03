@@ -262,6 +262,10 @@ class SteamAccount:
         """
         Get account balance.
         """
+        _, cookies = await self.steam.http.request_with_cookie_return(
+            url='https://store.steampowered.com/account/',
+            cookies=await self.steam.cookies(login),
+        )
         response = await self.steam.request_for_login(
             url='https://store.steampowered.com/account/',
             headers={
@@ -269,7 +273,10 @@ class SteamAccount:
                 'Upgrade-Insecure-Requests': '1',
             },
             login=login,
+            cookies=cookies,
         )
         page: HtmlElement = document_fromstring(response)
-        balance = page.cssselect('.accountBalance > .price')
+        balance = page.cssselect('.accountBalance > .price > a')
+        if not balance:
+            balance = page.cssselect('.accountBalance > .price')
         return int(re.search(r'(\d+)', balance[0].text).group(1))
