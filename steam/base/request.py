@@ -17,6 +17,8 @@ class BaseRequestStrategy(RequestStrategyAbstract):
     def _create_session(self) -> aiohttp.ClientSession:
         """
         Create aiohttp session.
+
+        :return: aiohttp.ClientSession object.
         """
         return aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(ssl=False),
@@ -24,12 +26,18 @@ class BaseRequestStrategy(RequestStrategyAbstract):
             cookie_jar=aiohttp.DummyCookieJar(),
         )
 
-    async def _request(self,
+    async def _request(
+            self,
             url: str,
             method: str = 'GET',
             cookies: Optional[Dict] = None,
             **kwargs: Any,
     ) -> aiohttp.ClientResponse:
+        """
+        Request with aiohttp session.
+
+        :return: aiohttp.ClientResponse object.
+        """
         if self._session is None:
             self._session = self._create_session()
         return await self._session.request(method, url, cookies=cookies, **kwargs)
@@ -41,6 +49,11 @@ class BaseRequestStrategy(RequestStrategyAbstract):
             cookies: Optional[Dict] = None,
             **kwargs: Any,
     ) -> str:
+        """
+        Request with aiohttp session.
+
+        :return: Http response in str.
+        """
         response = await self._request(url, method, cookies=cookies, **kwargs)
         return await response.text()
 
@@ -51,6 +64,11 @@ class BaseRequestStrategy(RequestStrategyAbstract):
             cookies: Optional[Dict] = None,
             **kwargs: Any,
     ) -> Tuple[str, Dict[str, str]]:
+        """
+        Request with aiohttp session.
+
+        :return: Response and response cookies.
+        """
         response = await self._request(url, method, cookies=cookies, allow_redirects=False, **kwargs)
         response_cookies = {}
         for name, value in response.cookies.items():
