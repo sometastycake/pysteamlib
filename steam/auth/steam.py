@@ -14,7 +14,7 @@ from bitstring import BitArray
 from steam.abstract.captcha import CaptchaSolverAbstract
 from steam.abstract.request import RequestStrategyAbstract
 from steam.abstract.storage import CookieStorageAbstract
-from steam.auth.exc import (
+from steam.auth.exceptions import (
     AccountAlreadyExistsError,
     GetRsaError,
     IncorrectCredentialsError,

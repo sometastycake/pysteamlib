@@ -3,7 +3,7 @@ import aiohttp
 from antigate import AntiGate
 
 from steam.abstract.captcha import CaptchaSolverAbstract
-from steam.base.captcha.exc import NotFoundAntigateApiKey
+from steam.base.captcha.exceptions import NotFoundAntigateApiKey
 from steam.config import config
 
 

@@ -5,7 +5,7 @@ from typing import Dict, List
 from pydantic import BaseModel
 from yarl import URL
 
-from steam.api.trade.exc import (
+from steam.api.trade.exceptions import (
     AccountOverflowError,
     ProfileSettingsError,
     SteamServerDownError,

@@ -7,7 +7,7 @@ from lxml.html import HtmlElement, document_fromstring
 from yarl import URL
 
 from steam.api.account.enums import Language
-from steam.api.account.errors import KeyRegistrationError
+from steam.api.account.exceptions import KeyRegistrationError
 from steam.api.account.schemas import (
     AvatarResponse,
     NicknameHistory,

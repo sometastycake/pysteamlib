@@ -3,7 +3,7 @@ from typing import List
 
 from lxml.html import HtmlElement, document_fromstring
 
-from steam.api.trade.exc import InvalidAuthenticatorError, NotFoundMobileConfirmationError
+from steam.api.trade.exceptions import InvalidAuthenticatorError, NotFoundMobileConfirmationError
 from steam.api.trade.handlers import (
     _accept_offer_response_handler,
     _cancel_offer_response_handler,

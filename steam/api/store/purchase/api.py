@@ -5,7 +5,7 @@ from aiocache import cached
 from lxml.html import HtmlElement, document_fromstring
 
 from steam.api.account.api import SteamAccount
-from steam.api.store.purchase.errors import NotEnoughFundsForGame
+from steam.api.store.purchase.exceptions import NotEnoughFundsForGame
 from steam.api.store.purchase.schemas import (
     FinalizeTransactionResponse,
     FinalPriceRequest,

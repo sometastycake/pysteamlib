@@ -1,7 +1,7 @@
 import json
 from typing import Dict
 
-from steam.api.inventory.exc import NullInventoryError, PrivateInventoryError, UnknownInventoryError
+from steam.api.inventory.exceptions import NullInventoryError, PrivateInventoryError, UnknownInventoryError
 from steam.auth.steam import Steam
 
 

@@ -1,6 +1,6 @@
 import json
 
-from steam.api.trade.exc import SteamNullResponseError
+from steam.api.trade.exceptions import SteamNullResponseError
 from steam.api.trade.schemas import SendOfferResponse, SteamOfferError
 from steam.errors import STEAM_ERROR_CODES
 from steam.exceptions import SteamError, UnknownSteamError
