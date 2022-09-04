@@ -7,7 +7,7 @@ import math
 import time
 from logging import getLogger
 from struct import pack
-from typing import Dict, Optional, Tuple, Type, TypeVar
+from typing import Dict, List, Optional, Tuple, Type, TypeVar
 
 from bitstring import BitArray
 
@@ -53,6 +53,10 @@ class Steam:
         self._captcha_solver = captcha_solver()
         self._accounts: Dict[str, AccountData] = {}
         self._logger = getLogger(__name__)
+
+    @property
+    def accounts(self) -> List[str]:
+        return list(self._accounts)
 
     @property
     def http(self) -> RequestStrategyAbstract:

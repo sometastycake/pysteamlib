@@ -74,3 +74,9 @@ class NicknameHistory(BaseModel):
     def __iter__(self) -> Generator[Nickname, None, None]:  # type:ignore
         for nickname in self.__root__:
             yield nickname
+
+    def __len__(self) -> int:
+        return len(self.__root__)
+
+    def __bool__(self) -> bool:
+        return bool(len(self.__root__))
