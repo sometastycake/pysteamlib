@@ -1,8 +1,10 @@
 from typing import Any, Dict, Optional, Tuple
 
 import aiohttp
+from aiohttp import ClientResponseError
 
 from steam.abstract.request import RequestStrategyAbstract
+from steam.exceptions import SteamWrongHttpStatusError, TooManySteamRequestsError
 
 
 class BaseRequestStrategy(RequestStrategyAbstract):
@@ -44,7 +46,12 @@ class BaseRequestStrategy(RequestStrategyAbstract):
         """
         if self._session is None:
             self._session = self._create_session()
-        return await self._session.request(method, url, cookies=cookies, **kwargs)
+        try:
+            return await self._session.request(method, url, cookies=cookies, **kwargs)
+        except ClientResponseError as error:
+            if error.status == 429:
+                raise TooManySteamRequestsError(http_status=429)
+            raise SteamWrongHttpStatusError(http_status=error.status)
 
     async def request(
             self,

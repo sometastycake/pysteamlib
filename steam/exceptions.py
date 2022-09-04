@@ -18,3 +18,19 @@ class SteamError(Exception):
 
 class UnknownSteamError(SteamError):
     ...
+
+
+class SteamWrongHttpStatusError(Exception):
+
+    def __init__(self, http_status: int):
+        self.http_status = http_status
+
+    def __str__(self) -> str:
+        return str({
+            'msg': 'Wrong HTTP status from Steam',
+            'http_status': self.http_status,
+        })
+
+
+class TooManySteamRequestsError(SteamWrongHttpStatusError):
+    ...
