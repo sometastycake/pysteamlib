@@ -2,11 +2,11 @@ import json
 
 from steam.api.trade.exceptions import SteamNullResponseError
 from steam.api.trade.schemas import SendOfferResponse, SteamOfferError
-from steam.errors import STEAM_ERROR_CODES
-from steam.exceptions import SteamError, UnknownSteamError
+from steam.errors.codes import STEAM_ERROR_CODES
+from steam.errors.exceptions import SteamError, UnknownSteamError
 
 
-def _send_offer_response_handler(response: str) -> SendOfferResponse:
+def send_offer_response_handler(response: str) -> SendOfferResponse:
     """
     Send offer handler.
     """
@@ -22,7 +22,7 @@ def _send_offer_response_handler(response: str) -> SendOfferResponse:
         return SendOfferResponse.parse_obj(content)
 
 
-def _cancel_offer_response_handler(response: str) -> None:
+def cancel_offer_response_handler(response: str) -> None:
     """
     Cancel offer handler.
     """
@@ -34,7 +34,7 @@ def _cancel_offer_response_handler(response: str) -> None:
         raise UnknownSteamError(error_code=error)
 
 
-def _decline_offer_response_handler(response: str) -> None:
+def decline_offer_response_handler(response: str) -> None:
     """
     Decline offer handler.
     """
@@ -46,7 +46,7 @@ def _decline_offer_response_handler(response: str) -> None:
         raise UnknownSteamError(error_code=error)
 
 
-def _accept_offer_response_handler(response: str) -> int:
+def accept_offer_response_handler(response: str) -> int:
     """
     Accept offer handler.
     """

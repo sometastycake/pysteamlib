@@ -1,10 +1,10 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import aiohttp
 from aiohttp import ClientResponseError
 
 from steam.abstract.request import RequestStrategyAbstract
-from steam.exceptions import SteamWrongHttpStatusError, TooManySteamRequestsError
+from steam.errors.exceptions import SteamWrongHttpStatusError, TooManySteamRequestsError
 
 
 class BaseRequestStrategy(RequestStrategyAbstract):
@@ -37,6 +37,8 @@ class BaseRequestStrategy(RequestStrategyAbstract):
             url: str,
             method: str = 'GET',
             cookies: Optional[Dict] = None,
+            params: Optional[Mapping[str, str]] = None,
+            headers: Optional[Dict] = None,
             **kwargs: Any,
     ) -> aiohttp.ClientResponse:
         """
@@ -47,7 +49,14 @@ class BaseRequestStrategy(RequestStrategyAbstract):
         if self._session is None:
             self._session = self._create_session()
         try:
-            return await self._session.request(method, url, cookies=cookies, **kwargs)
+            return await self._session.request(
+                method=method,
+                url=url,
+                cookies=cookies,
+                params=params,
+                headers=headers,
+                **kwargs,
+            )
         except ClientResponseError as error:
             if error.status == 429:
                 raise TooManySteamRequestsError(http_status=429)
@@ -57,7 +66,9 @@ class BaseRequestStrategy(RequestStrategyAbstract):
             self,
             url: str,
             method: str = 'GET',
-            cookies: Optional[Dict] = None,
+            cookies: Optional[Mapping[str, str]] = None,
+            params: Optional[Mapping[str, str]] = None,
+            headers: Optional[Mapping[str, str]] = None,
             **kwargs: Any,
     ) -> str:
         """
@@ -65,14 +76,23 @@ class BaseRequestStrategy(RequestStrategyAbstract):
 
         :return: Http response in str.
         """
-        response = await self._request(url, method, cookies=cookies, **kwargs)
+        response = await self._request(
+            url=url,
+            method=method,
+            cookies=cookies,
+            params=params,
+            headers=headers,
+            **kwargs,
+        )
         return await response.text()
 
     async def request_with_cookie_return(
             self,
             url: str,
             method: str = 'GET',
-            cookies: Optional[Dict] = None,
+            cookies: Optional[Mapping[str, str]] = None,
+            params: Optional[Mapping[str, str]] = None,
+            headers: Optional[Mapping[str, str]] = None,
             **kwargs: Any,
     ) -> Tuple[str, Dict[str, str]]:
         """
@@ -80,7 +100,15 @@ class BaseRequestStrategy(RequestStrategyAbstract):
 
         :return: Response and response cookies.
         """
-        response = await self._request(url, method, cookies=cookies, allow_redirects=False, **kwargs)
+        response = await self._request(
+            url=url,
+            method=method,
+            cookies=cookies,
+            params=params,
+            headers=headers,
+            allow_redirects=False,
+            **kwargs,
+        )
         response_cookies = {}
         for name, value in response.cookies.items():
             response_cookies[name] = value.value

@@ -17,7 +17,7 @@ from steam.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steam.auth.steam import Steam
-from steam.errors import check_steam_error_from_response
+from steam.errors.response import check_steam_error_from_response
 
 
 class SteamAccount:

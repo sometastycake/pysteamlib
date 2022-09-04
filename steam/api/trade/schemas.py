@@ -13,8 +13,8 @@ from steam.api.trade.exceptions import (
     TradelinkError,
     TradeOffersLimitError,
 )
-from steam.errors import STEAM_ERROR_CODES
-from steam.exceptions import SteamError
+from steam.errors.codes import STEAM_ERROR_CODES
+from steam.errors.exceptions import SteamError
 
 
 class Asset(BaseModel):

@@ -5,10 +5,10 @@ from lxml.html import HtmlElement, document_fromstring
 
 from steam.api.trade.exceptions import InvalidAuthenticatorError, NotFoundMobileConfirmationError
 from steam.api.trade.handlers import (
-    _accept_offer_response_handler,
-    _cancel_offer_response_handler,
-    _decline_offer_response_handler,
-    _send_offer_response_handler,
+    accept_offer_response_handler,
+    cancel_offer_response_handler,
+    decline_offer_response_handler,
+    send_offer_response_handler,
 )
 from steam.api.trade.schemas import MobileConfirmation, SendOfferRequest, SendOfferResponse
 from steam.auth.steam import Steam
@@ -36,7 +36,7 @@ class SteamTrade:
             raise_for_status=False,
             cookies=await self.steam.cookies(login),
         )
-        return _send_offer_response_handler(response)
+        return send_offer_response_handler(response)
 
     async def cancel_offer(self, tradeofferid: int, login: str) -> None:
         """
@@ -57,7 +57,7 @@ class SteamTrade:
             raise_for_status=False,
             cookies=await self.steam.cookies(login),
         )
-        return _cancel_offer_response_handler(response)
+        return cancel_offer_response_handler(response)
 
     async def decline_offer(self, tradeofferid: int, login: str) -> None:
         """
@@ -80,7 +80,7 @@ class SteamTrade:
             raise_for_status=False,
             cookies=await self.steam.cookies(login),
         )
-        return _decline_offer_response_handler(response)
+        return decline_offer_response_handler(response)
 
     async def accept_offer(self, tradeofferid: int, partner_steamid: int, login: str) -> int:
         """
@@ -107,7 +107,7 @@ class SteamTrade:
             raise_for_status=False,
             login=login,
         )
-        return _accept_offer_response_handler(response)
+        return accept_offer_response_handler(response)
 
     def _parse_mobile_confirmations_response(self, response: str) -> List[MobileConfirmation]:
         """
