@@ -216,6 +216,7 @@ class Steam:
 
             if result.captcha_needed:
                 self._logger.debug(f'Captcha needed to {login}')
+
                 request.captcha_text = await self._captcha_solver(
                     link=result.captcha_url,
                 )
@@ -223,6 +224,7 @@ class Steam:
 
             if result.requires_twofactor:
                 self._logger.debug(f'2FA needed to {login}')
+
                 shared_secret = self.authenticator(login).shared_secret
                 request.twofactorcode = await self.get_steam_guard(
                     shared_secret=shared_secret,
