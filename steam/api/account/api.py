@@ -17,6 +17,7 @@ from steam.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steam.auth.steam import Steam
+from steam.errors.exceptions import UnauthorizedSteamRequestError, SteamWrongHttpStatusError
 from steam.errors.response import check_steam_error_from_response
 
 
@@ -24,6 +25,22 @@ class SteamAccount:
 
     def __init__(self, steam: Steam):
         self.steam = steam
+
+    async def _get_profile_editing_page(self, login: str) -> str:
+        """
+        Get profile editing page.
+        """
+        url = f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info'
+        response = await self.steam.http.request(
+            url=url,
+            headers={
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+            },
+            cookies=await self.steam.cookies(login),
+        )
+        if str(self.steam.steamid(login)) not in response:
+            raise UnauthorizedSteamRequestError(url=url, login=login)
+        return response
 
     async def get_nickname_history(self, login: str) -> NicknameHistory:
         """
@@ -67,13 +84,7 @@ class SteamAccount:
         """
         Get profile info.
         """
-        response = await self.steam.http.request(
-            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
-            headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-            },
-            cookies=await self.steam.cookies(login),
-        )
+        response = await self._get_profile_editing_page(login)
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
         return ProfileInfo(
@@ -119,13 +130,7 @@ class SteamAccount:
         """
         Get privacy settings.
         """
-        response = await self.steam.http.request(
-            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/info',
-            headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-            },
-            cookies=await self.steam.cookies(login),
-        )
+        response = await self._get_profile_editing_page(login)
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
         return PrivacyInfo(**info['Privacy'])
@@ -134,23 +139,29 @@ class SteamAccount:
         """
         Privacy settings.
         """
-        response: str = await self.steam.http.request(
-            method='POST',
-            url=f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxsetprivacy/',
-            data=FormData(
-                fields=[
-                    ('sessionid', await self.steam.sessionid(login)),
-                    ('Privacy', settings.PrivacySettings.json()),
-                    ('eCommentPermission', settings.eCommentPermission.value),
-                ],
-            ),
-            headers={
-                'Accept': 'application/json, text/plain, */*',
-                'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/settings',
-            },
-            cookies=await self.steam.cookies(login),
-        )
+        url = f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxsetprivacy/'
+        try:
+            response: str = await self.steam.http.request(
+                method='POST',
+                url=url,
+                data=FormData(
+                    fields=[
+                        ('sessionid', await self.steam.sessionid(login)),
+                        ('Privacy', settings.PrivacySettings.json()),
+                        ('eCommentPermission', settings.eCommentPermission.value),
+                    ],
+                ),
+                headers={
+                    'Accept': 'application/json, text/plain, */*',
+                    'Origin': 'https://steamcommunity.com',
+                    'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/settings',
+                },
+                cookies=await self.steam.cookies(login),
+            )
+        except SteamWrongHttpStatusError as error:
+            if error.http_status == 401:
+                raise UnauthorizedSteamRequestError(url=url, login=login) from None
+            raise
         result = PrivacyResponse.parse_raw(response)
         check_steam_error_from_response(result)
         return result
@@ -159,8 +170,9 @@ class SteamAccount:
         """
         Revoke api key.
         """
-        await self.steam.http.request(
-            url='https://steamcommunity.com/dev/revokekey',
+        url = 'https://steamcommunity.com/dev/revokekey'
+        response = await self.steam.http.request(
+            url=url,
             method='POST',
             data={
                 'Revoke': 'Revoke My Steam Web API Key',
@@ -173,6 +185,8 @@ class SteamAccount:
             },
             cookies=await self.steam.cookies(login),
         )
+        if str(self.steam.steamid(login)) not in response:
+            raise UnauthorizedSteamRequestError(url=url, login=login)
 
     async def register_api_key(self, domain: str, login: str) -> str:
         """
@@ -182,8 +196,9 @@ class SteamAccount:
         cookies.update({
             'Steam_Language': 'english',
         })
+        url = 'https://steamcommunity.com/dev/registerkey'
         response = await self.steam.http.request(
-            url='https://steamcommunity.com/dev/registerkey',
+            url=url,
             method='POST',
             data={
                 'domain': domain,
@@ -197,6 +212,9 @@ class SteamAccount:
             },
             cookies=cookies,
         )
+
+        if str(self.steam.steamid(login)) not in response:
+            raise UnauthorizedSteamRequestError(url=url, login=login)
 
         error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
         if error in response:
@@ -238,9 +256,10 @@ class SteamAccount:
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
             image = await file.read()
+        url = 'https://steamcommunity.com/actions/FileUploader/'
         response = await self.steam.http.request(
             method='POST',
-            url='https://steamcommunity.com/actions/FileUploader/',
+            url=url,
             data=FormData(
                 fields=[
                     ('avatar', image),
@@ -257,6 +276,8 @@ class SteamAccount:
             },
             cookies=await self.steam.cookies(login),
         )
+        if response == '#Error_BadOrMissingSteamID':
+            raise UnauthorizedSteamRequestError(url=url, login=login)
         return AvatarResponse.parse_raw(response)
 
     async def account_balance(self, login: str) -> int:
@@ -268,14 +289,17 @@ class SteamAccount:
             cookies=await self.steam.cookies(login),
         )
         cookies.update(await self.steam.cookies(login))
+        url = 'https://store.steampowered.com/account/'
         response = await self.steam.http.request(
-            url='https://store.steampowered.com/account/',
+            url=url,
             headers={
                 'Accept': '*/*',
                 'Upgrade-Insecure-Requests': '1',
             },
             cookies=cookies,
         )
+        if str(self.steam.steamid(login)) not in response:
+            raise UnauthorizedSteamRequestError(url=url, login=login)
         page: HtmlElement = document_fromstring(response)
         balance = page.cssselect('.accountBalance > .price > a')
         if not balance:

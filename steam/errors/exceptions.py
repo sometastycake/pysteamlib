@@ -34,3 +34,13 @@ class SteamWrongHttpStatusError(Exception):
 
 class TooManySteamRequestsError(SteamWrongHttpStatusError):
     ...
+
+
+class UnauthorizedSteamRequestError(Exception):
+
+    def __init__(self, url: str, login: str):
+        self.url = url
+        self.login = login
+
+    def __str__(self) -> str:
+        return f'Unauthorized request to "{self.url}" for "{self.login}"'
