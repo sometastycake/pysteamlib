@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import math
 import time
+from logging import getLogger
 from struct import pack
 from typing import Dict, Optional, Tuple, Type, TypeVar
 
@@ -51,6 +52,7 @@ class Steam:
         self._storage = cookie_storage()
         self._captcha_solver = captcha_solver()
         self._accounts: Dict[str, AccountData] = {}
+        self._logger = getLogger(__name__)
 
     @property
     def http(self) -> RequestStrategyAbstract:
@@ -213,12 +215,14 @@ class Steam:
                 raise TooManyAuthorizationsError(login=login)
 
             if result.captcha_needed:
+                self._logger.debug(f'Captcha needed to {login}')
                 request.captcha_text = await self._captcha_solver(
                     link=result.captcha_url,
                 )
                 request.captchagid = result.captcha_gid
 
             if result.requires_twofactor:
+                self._logger.debug(f'2FA needed to {login}')
                 shared_secret = self.authenticator(login).shared_secret
                 request.twofactorcode = await self.get_steam_guard(
                     shared_secret=shared_secret,
@@ -252,6 +256,7 @@ class Steam:
         Login to Steam.
         """
         if await self.is_authorized(login):
+            self._logger.debug(f'{login} already authorized in Steam')
             return
 
         sessionid = await self._get_sessionid_from_steam()
@@ -274,13 +279,18 @@ class Steam:
             'steamLoginSecure': result.steam_login_secure(),
         })
 
-        await self._storage.set(login=login, cookies=cookies)
+        await self._storage.set(
+            login=login,
+            cookies=cookies,
+        )
+        self._logger.debug(f'{login} is authorized')
 
     async def login_all(self, timeout_between_logins: Optional[float] = 5.0) -> None:
         """
         Login all accounts.
         """
-        for login in list(self._accounts):
+        for login in self._accounts:
+            self._logger.debug(f'Authorization {login}')
             await self.login_to_steam(login)
             if timeout_between_logins:
                 await asyncio.sleep(timeout_between_logins)
