@@ -40,22 +40,21 @@ CaptchaSolverType = TypeVar('CaptchaSolverType', bound=CaptchaSolverAbstract)
 
 
 class Steam:
-    """
-    Steam authorization class.
-    """
+
     def __init__(
         self,
-        storage_class: Type[CookieStorageType] = BaseCookieStorage,
-        request_class: Type[RequestStrategyAbstract] = BaseRequestStrategy,
-        captcha_solver_class: Type[CaptchaSolverType] = BaseAntigateCaptchaSolver,
+        cookie_storage: Type[CookieStorageType] = BaseCookieStorage,
+        captcha_solver: Type[CaptchaSolverType] = BaseAntigateCaptchaSolver,
+        request_strategy: Type[RequestStrategyAbstract] = BaseRequestStrategy,
     ):
-        self._http = request_class()
-        self._storage = storage_class()
-        self._captcha_solver = captcha_solver_class()
+        self._http = request_strategy()
+        self._storage = cookie_storage()
+        self._captcha_solver = captcha_solver()
         self._accounts: Dict[str, AccountData] = {}
 
     @property
     def http(self) -> RequestStrategyAbstract:
+        """Get request strategy object."""
         return self._http
 
     def steamid(self, login: str) -> int:
