@@ -33,7 +33,8 @@ class SteamWrongHttpStatusError(Exception):
 
 
 class TooManySteamRequestsError(SteamWrongHttpStatusError):
-    ...
+    def __init__(self, http_status: int = 429):
+        self.http_status = http_status
 
 
 class UnauthorizedSteamRequestError(Exception):

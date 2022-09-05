@@ -42,7 +42,7 @@ class BaseRequestStrategy(RequestStrategyAbstract):
         response = await self._session.request(method, url, **kwargs)
         if raise_for_status and not response.ok:
             if response.status == 429:
-                raise TooManySteamRequestsError(http_status=429)
+                raise TooManySteamRequestsError
             if response.status == 401:
                 raise UnauthorizedSteamRequestError(url=url)
             raise SteamWrongHttpStatusError(http_status=response.status)
@@ -55,19 +55,8 @@ class BaseRequestStrategy(RequestStrategyAbstract):
             raise_for_status: bool = True,
             **kwargs: Any,
     ) -> str:
-        response = await self._request(
-            url=url,
-            method=method,
-            raise_for_status=raise_for_status,
-            **kwargs,
-        )
+        response = await self._request(url, method, raise_for_status, **kwargs)
         return await response.text()
-
-    def _get_cookies_from_response(self, response: aiohttp.ClientResponse) -> Dict[str, str]:
-        cookies = {}
-        for name, value in response.cookies.items():
-            cookies[name] = value.value
-        return cookies
 
     async def request_with_cookie_return(
             self,
@@ -78,4 +67,6 @@ class BaseRequestStrategy(RequestStrategyAbstract):
         response = await self._request(
             url, method, allow_redirects=False, **kwargs,
         )
-        return await response.text(), self._get_cookies_from_response(response)
+        return await response.text(), {
+            k: v.value for k, v in response.cookies.items()
+        }
