@@ -11,7 +11,7 @@ class SteamError(Exception):
 
     def __str__(self) -> str:
         return str({
-            'error': STEAM_ERROR_CODES[self.error_code] if self.error_code in STEAM_ERROR_CODES else self.error_code,
+            'error': STEAM_ERROR_CODES.get(self.error_code, self.error_code),
             'msg': self.error_msg,
         })
 
@@ -33,6 +33,7 @@ class SteamWrongHttpStatusError(Exception):
 
 
 class TooManySteamRequestsError(SteamWrongHttpStatusError):
+
     def __init__(self, http_status: int = 429):
         self.http_status = http_status
 

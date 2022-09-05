@@ -1,9 +1,42 @@
 import json
+import re
 
-from steam.api.trade.exceptions import SteamNullResponseError
-from steam.api.trade.schemas import SendOfferResponse, SteamOfferError
-from steam.errors.codes import STEAM_ERROR_CODES
-from steam.errors.exceptions import SteamError, UnknownSteamError
+from steam.api.trade.exceptions import (
+    AccountOverflowError,
+    ProfileSettingsError,
+    SteamNullResponseError,
+    SteamServerDownError,
+    TradeBanError,
+    TradelinkError,
+    TradeOffersLimitError,
+)
+from steam.api.trade.schemas import SendOfferResponse
+from steam.errors.exceptions import UnknownSteamError
+from steam.errors.response import check_steam_error
+
+
+def determine_error_code(steam_error: str) -> None:
+    error = re.search(
+        pattern=r'. \((\d+)\)',
+        string=steam_error,
+    )
+    if error and error.groups():
+        code = int(error.group(1))
+        check_steam_error(code)
+
+
+def determine_error(steam_error: str) -> None:
+    errors = {
+        'Trade URL is no longer valid': TradelinkError,
+        'is not available to trade': ProfileSettingsError,
+        'they have a trade ban': TradeBanError,
+        'maximum number of items': AccountOverflowError,
+        'sent too many trade offers': TradeOffersLimitError,
+        'server may be down': SteamServerDownError,
+    }
+    for error in errors:
+        if error in steam_error:
+            raise errors[error]
 
 
 def send_offer_response_handler(response: str) -> SendOfferResponse:
@@ -14,10 +47,10 @@ def send_offer_response_handler(response: str) -> SendOfferResponse:
         raise SteamNullResponseError
     content = json.loads(response)
     if 'strError' in content:
-        error = SteamOfferError.parse_obj(content)
-        error.determine_error()
-        error.determine_error_code()
-        raise UnknownSteamError(content['strError'])
+        error = content['strError']
+        determine_error(error)
+        determine_error_code(error)
+        raise UnknownSteamError(error_code=error)
     else:
         return SendOfferResponse.parse_obj(content)
 
@@ -28,10 +61,7 @@ def cancel_offer_response_handler(response: str) -> None:
     """
     content = json.loads(response)
     if 'success' in content:
-        error = content['success']
-        if error in STEAM_ERROR_CODES:
-            raise SteamError(error_code=error)
-        raise UnknownSteamError(error_code=error)
+        check_steam_error(error=content['success'])
 
 
 def decline_offer_response_handler(response: str) -> None:
@@ -40,10 +70,7 @@ def decline_offer_response_handler(response: str) -> None:
     """
     content = json.loads(response)
     if 'success' in content:
-        error = content['success']
-        if error in STEAM_ERROR_CODES:
-            raise SteamError(error_code=error)
-        raise UnknownSteamError(error_code=error)
+        check_steam_error(error=content['success'])
 
 
 def accept_offer_response_handler(response: str) -> int:
@@ -52,8 +79,9 @@ def accept_offer_response_handler(response: str) -> int:
     """
     content = json.loads(response)
     if 'strError' in content:
-        error = SteamOfferError.parse_obj(content)
-        error.determine_error_code()
-        raise UnknownSteamError(content['strError'])
+        error = content['strError']
+        determine_error(error)
+        determine_error_code(error)
+        raise UnknownSteamError(error_code=error)
     else:
         return content['tradeid']
