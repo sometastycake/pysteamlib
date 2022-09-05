@@ -38,9 +38,8 @@ class TooManySteamRequestsError(SteamWrongHttpStatusError):
 
 class UnauthorizedSteamRequestError(Exception):
 
-    def __init__(self, url: str, login: str):
+    def __init__(self, url):
         self.url = url
-        self.login = login
 
     def __str__(self) -> str:
-        return f'Unauthorized request to "{self.url}" for "{self.login}"'
+        return f'Unauthorized request to "{self.url}"'

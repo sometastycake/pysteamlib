@@ -17,7 +17,7 @@ from steam.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steam.auth.steam import Steam
-from steam.errors.exceptions import UnauthorizedSteamRequestError, SteamWrongHttpStatusError
+from steam.errors.exceptions import UnauthorizedSteamRequestError
 from steam.errors.response import check_steam_error_from_response
 
 
@@ -39,7 +39,7 @@ class SteamAccount:
             cookies=await self.steam.cookies(login),
         )
         if str(self.steam.steamid(login)) not in response:
-            raise UnauthorizedSteamRequestError(url=url, login=login)
+            raise UnauthorizedSteamRequestError(url=url)
         return response
 
     async def get_nickname_history(self, login: str) -> NicknameHistory:
@@ -140,28 +140,23 @@ class SteamAccount:
         Privacy settings.
         """
         url = f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/ajaxsetprivacy/'
-        try:
-            response: str = await self.steam.http.request(
-                method='POST',
-                url=url,
-                data=FormData(
-                    fields=[
-                        ('sessionid', await self.steam.sessionid(login)),
-                        ('Privacy', settings.PrivacySettings.json()),
-                        ('eCommentPermission', settings.eCommentPermission.value),
-                    ],
-                ),
-                headers={
-                    'Accept': 'application/json, text/plain, */*',
-                    'Origin': 'https://steamcommunity.com',
-                    'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/settings',
-                },
-                cookies=await self.steam.cookies(login),
-            )
-        except SteamWrongHttpStatusError as error:
-            if error.http_status == 401:
-                raise UnauthorizedSteamRequestError(url=url, login=login) from None
-            raise
+        response: str = await self.steam.http.request(
+            method='POST',
+            url=url,
+            data=FormData(
+                fields=[
+                    ('sessionid', await self.steam.sessionid(login)),
+                    ('Privacy', settings.PrivacySettings.json()),
+                    ('eCommentPermission', settings.eCommentPermission.value),
+                ],
+            ),
+            headers={
+                'Accept': 'application/json, text/plain, */*',
+                'Origin': 'https://steamcommunity.com',
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid(login)}/edit/settings',
+            },
+            cookies=await self.steam.cookies(login),
+        )
         result = PrivacyResponse.parse_raw(response)
         check_steam_error_from_response(result)
         return result
@@ -186,7 +181,7 @@ class SteamAccount:
             cookies=await self.steam.cookies(login),
         )
         if str(self.steam.steamid(login)) not in response:
-            raise UnauthorizedSteamRequestError(url=url, login=login)
+            raise UnauthorizedSteamRequestError(url=url)
 
     async def register_api_key(self, domain: str, login: str) -> str:
         """
@@ -214,7 +209,7 @@ class SteamAccount:
         )
 
         if str(self.steam.steamid(login)) not in response:
-            raise UnauthorizedSteamRequestError(url=url, login=login)
+            raise UnauthorizedSteamRequestError(url=url)
 
         error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
         if error in response:
@@ -277,7 +272,7 @@ class SteamAccount:
             cookies=await self.steam.cookies(login),
         )
         if response == '#Error_BadOrMissingSteamID':
-            raise UnauthorizedSteamRequestError(url=url, login=login)
+            raise UnauthorizedSteamRequestError(url=url)
         return AvatarResponse.parse_raw(response)
 
     async def account_balance(self, login: str) -> int:
@@ -299,7 +294,7 @@ class SteamAccount:
             cookies=cookies,
         )
         if str(self.steam.steamid(login)) not in response:
-            raise UnauthorizedSteamRequestError(url=url, login=login)
+            raise UnauthorizedSteamRequestError(url=url)
         page: HtmlElement = document_fromstring(response)
         balance = page.cssselect('.accountBalance > .price > a')
         if not balance:

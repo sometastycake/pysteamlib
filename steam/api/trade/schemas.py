@@ -1,8 +1,8 @@
 import json
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from yarl import URL
 
 from steam.api.trade.exceptions import (
@@ -18,10 +18,10 @@ from steam.errors.exceptions import SteamError
 
 
 class Asset(BaseModel):
-    appid: str
+    appid: str = Field(description='Appid of Steam game')
     contextid: str
     amount: int = 1
-    assetid: str
+    assetid: str = Field(description='Assetid of item')
 
 
 class Me(BaseModel):
@@ -39,24 +39,29 @@ class Them(BaseModel):
 class JsonTradeoffer(BaseModel):
     newversion: bool = True
     version: int = 2
-    me: Me
-    them: Them
+    me: Me = Me()
+    them: Them = Them()
 
 
 class TradeOfferParams(BaseModel):
-    trade_offer_access_token: str
+    trade_offer_access_token: str = Field(description='User tradelink token')
 
 
 class SendOfferRequest(BaseModel):
     captcha: str = ''
     serverid: str = '1'
-    partner: int
+    partner: int = Field(description='User to whom we send the exchange')
     json_tradeoffer: JsonTradeoffer
     tradeoffermessage: str = ''
     sessionid: str
-    trade_offer_create_params: TradeOfferParams
+    trade_offer_create_params: TradeOfferParams = Field(
+        description='Trade link token of the user to whom we are sending the exchange',
+    )
 
     def tradelink(self) -> str:
+        """
+        Get user tradelink.
+        """
         params = {
             'partner': str(self.partner - 76561197960265728),
             'token': self.trade_offer_create_params.trade_offer_access_token,
@@ -64,6 +69,9 @@ class SendOfferRequest(BaseModel):
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))
 
     def to_request(self) -> Dict:
+        """
+        Prepare data to request.
+        """
         data = self.dict()
         data['json_tradeoffer'] = json.dumps(data['json_tradeoffer'])
         data['trade_offer_create_params'] = json.dumps(data['trade_offer_create_params'])
@@ -72,9 +80,9 @@ class SendOfferRequest(BaseModel):
 
 class SendOfferResponse(BaseModel):
     tradeofferid: int
-    needs_mobile_confirmation: bool
-    needs_email_confirmation: bool
-    email_domain: str
+    needs_mobile_confirmation: Optional[bool]
+    needs_email_confirmation: Optional[bool]
+    email_domain: Optional[str]
 
 
 class SteamOfferError(BaseModel):
