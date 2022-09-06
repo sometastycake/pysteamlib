@@ -24,6 +24,53 @@ steam.add_account(
     )
 )
 await steam.login_all()
+
+# Or you can use
+await steam.login_to_steam('login')
+```
+
+
+## Steam account API
+
+```
+api = SteamAPI(steam)
+
+# Set account privacy settings
+result = await api.account.set_privacy(
+    settings=PrivacyInfo(
+        PrivacySettings=PrivacySettings(
+            PrivacyProfile=PrivacyLevel.Hidden,
+            PrivacyInventory=PrivacyLevel.Hidden,
+            PrivacyInventoryGifts=PrivacyLevel.Hidden,
+            PrivacyOwnedGames=PrivacyLevel.Hidden,
+            PrivacyPlaytime=PrivacyLevel.Hidden,
+            PrivacyFriendsList=PrivacyLevel.Hidden,
+        ),
+        eCommentPermission=CommentPermissionLevel.Hidden
+    ),
+    login=login,
+)
+
+# Get nickname history
+history = await api.account.get_nickname_history(login)
+
+# Get current profile info
+profile = await api.account.get_current_profile_info(login)
+
+# Get current privacy settings
+privacy = await api.account.get_current_privacy(login)
+
+# Revoke api key
+await api.account.revoke_api_key(login)
+
+# Register api key
+key = await api.account.register_api_key(domain, login)
+
+# Register tradelink
+tradelink = await api.account.register_tradelink(login)
+
+# Set avatar
+await api.account.upload_avatar('avatar.jpeg', login)
 ```
 
 

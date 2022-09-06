@@ -42,7 +42,7 @@ class ProfileInfo(BaseModel):
 
 
 class ProfileInfoResponse(BaseSteamResponse):
-    errmsg: str
+    ...
 
 
 class Images(BaseModel):
