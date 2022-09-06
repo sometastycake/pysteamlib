@@ -6,6 +6,7 @@
 ```
 steam = Steam()
 
+# Authenticator data is using for calculating Steam Guard code and mobile confirmations
 steam.add_account(
     login='login',
     details=AccountData(
@@ -27,6 +28,7 @@ await steam.login_all()
 ```
 api = SteamAPI(steam)
 
+# Sending offer
 response = await api.trade.send_offer(
     request=SendOfferRequest(
         partner=123456789,
@@ -49,7 +51,11 @@ response = await api.trade.send_offer(
     ),
     login=login,
 )
+
+# Confirmation offer in mobile app
 if response.needs_mobile_confirmation:
     await api.trade.mobile_confirm_by_tradeofferid(response.tradeofferid, login)
+    
+# Cancelling offer
 await api.trade.cancel_offer(response.tradeofferid, login)
 ```
