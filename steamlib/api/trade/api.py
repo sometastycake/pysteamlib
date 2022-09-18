@@ -27,6 +27,8 @@ class SteamTrade:
         """
         Send offer to Steam.
         """
+        if not request.sessionid:
+            request.sessionid = await self.steam.sessionid()
         response: str = await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/tradeoffer/new/send',
