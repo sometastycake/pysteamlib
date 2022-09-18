@@ -25,15 +25,9 @@ class PrivacyResponse(BaseSteamResponse):
 
 
 class ProfileInfo(BaseModel):
-    weblink_1_title: Optional[str] = ''
-    weblink_1_url: Optional[str] = ''
-    weblink_2_title: Optional[str] = ''
-    weblink_2_url: Optional[str] = ''
-    weblink_3_title: Optional[str] = ''
-    weblink_3_url: Optional[str] = ''
-    personaName: Optional[str] = ''
+    personaName: Optional[str]
     real_name: Optional[str] = ''
-    customURL: Optional[str] = ''
+    customURL: Optional[str]
     country: Optional[str] = ''
     state: Optional[str] = ''
     city: Optional[str] = ''
