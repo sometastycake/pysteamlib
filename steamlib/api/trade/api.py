@@ -4,17 +4,13 @@ from typing import List
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
+from steamlib.api.trade.enums import OfferState
 from steamlib.api.trade.exceptions import (
     InvalidAuthenticatorError,
     InvalidConfirmationPageError,
     NotFoundMobileConfirmationError,
 )
-from steamlib.api.trade.handlers import (
-    accept_offer_response_handler,
-    cancel_offer_response_handler,
-    decline_offer_response_handler,
-    send_offer_response_handler,
-)
+from steamlib.api.trade.handlers import OfferResponseHandler
 from steamlib.api.trade.schemas import AcceptOfferResponse, MobileConfirmation, SendOfferRequest, SendOfferResponse
 
 
@@ -40,13 +36,13 @@ class SteamTrade:
                 'Referer': request.tradelink(),
             },
         )
-        return send_offer_response_handler(response)
+        return OfferResponseHandler(response, OfferState.send).send_offer()
 
     async def cancel_offer(self, tradeofferid: int) -> None:
         """
         Cancel offer.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/cancel',
             data={
@@ -59,7 +55,7 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/sent/',
             },
         )
-        return cancel_offer_response_handler(response)
+        return OfferResponseHandler(response, OfferState.cancel).cancel_offer()
 
     async def decline_offer(self, tradeofferid: int) -> None:
         """
@@ -67,7 +63,7 @@ class SteamTrade:
 
         :param tradeofferid: Tradeofferid.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/decline',
             data={
@@ -80,15 +76,13 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/',
             },
         )
-        return decline_offer_response_handler(response)
+        return OfferResponseHandler(response, OfferState.decline).decline_offer()
 
     async def accept_offer(self, tradeofferid: int, partner_steamid: int) -> AcceptOfferResponse:
         """
         Accept offer.
-
-        :return: Tradeid.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/accept',
             data={
@@ -105,7 +99,7 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/tradeoffer/{tradeofferid}/'
             },
         )
-        return accept_offer_response_handler(response)
+        return OfferResponseHandler(response, OfferState.accept).accept_offer()
 
     def _parse_mobile_confirmations_response(self, response: str) -> List[MobileConfirmation]:
         """
