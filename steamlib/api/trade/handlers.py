@@ -1,7 +1,7 @@
 import json
 import re
 
-from pysteamauth.errors import check_steam_error, UnknownSteamError
+from pysteamauth.errors import UnknownSteamError, check_steam_error
 
 from steamlib.api.trade.exceptions import (
     AccountOverflowError,

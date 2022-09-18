@@ -11,7 +11,7 @@ requirements = [
 
 setup(
     name='pysteamlib',
-    version='0.0.5',
+    version='0.0.1',
     url='https://github.com/sometastycake/pysteamlib',
     license='MIT',
     author='Mike M',

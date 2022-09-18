@@ -4,7 +4,11 @@ from typing import List
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
-from steamlib.api.trade.exceptions import InvalidAuthenticatorError, NotFoundMobileConfirmationError
+from steamlib.api.trade.exceptions import (
+    InvalidAuthenticatorError,
+    InvalidConfirmationPageError,
+    NotFoundMobileConfirmationError,
+)
 from steamlib.api.trade.handlers import (
     accept_offer_response_handler,
     cancel_offer_response_handler,
@@ -122,7 +126,6 @@ class SteamTrade:
         """
         Get mobile confirmations.
         """
-        cookies = await self.steam.cookies()
         server_time = await self.steam.get_server_time()
         confirmation_hash = self.steam.get_confirmation_hash(
             server_time=server_time,
@@ -131,7 +134,6 @@ class SteamTrade:
             url='https://steamcommunity.com/mobileconf/conf',
             method='GET',
             cookies={
-                **cookies,
                 'mobileClient': 'ios',
                 'mobileClientVersion': '2.0.20',
                 'steamid': str(self.steam.steamid),
@@ -148,13 +150,14 @@ class SteamTrade:
         )
         if '<div>Invalid authenticator</div>' in response:
             raise InvalidAuthenticatorError
+        if 'There was a problem loading the confirmations page' in response:
+            raise InvalidConfirmationPageError
         return self._parse_mobile_confirmations_response(response)
 
     async def mobile_confirm(self, confirmation: MobileConfirmation) -> bool:
         """
         Mobile confirm.
         """
-        cookies = await self.steam.cookies()
         server_time = await self.steam.get_server_time()
         confirmation_hash = self.steam.get_confirmation_hash(
             server_time=server_time,
@@ -164,7 +167,6 @@ class SteamTrade:
             url='https://steamcommunity.com/mobileconf/ajaxop',
             method='GET',
             cookies={
-                **cookies,
                 'mobileClient': 'ios',
                 'mobileClientVersion': '2.0.20',
             },
