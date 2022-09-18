@@ -12,7 +12,7 @@ from steamlib.api.trade.exceptions import (
     TradelinkError,
     TradeOffersLimitError,
 )
-from steamlib.api.trade.schemas import SendOfferResponse
+from steamlib.api.trade.schemas import AcceptOfferResponse, SendOfferResponse
 
 
 def determine_error_code(steam_error: str) -> None:
@@ -73,7 +73,7 @@ def decline_offer_response_handler(response: str) -> None:
         check_steam_error(error=content['success'])
 
 
-def accept_offer_response_handler(response: str) -> int:
+def accept_offer_response_handler(response: str) -> AcceptOfferResponse:
     """
     Accept offer handler.
     """
@@ -84,4 +84,4 @@ def accept_offer_response_handler(response: str) -> int:
         determine_error_code(error)
         raise UnknownSteamError(error_code=error)
     else:
-        return content['tradeid']
+        return AcceptOfferResponse.parse_obj(content)

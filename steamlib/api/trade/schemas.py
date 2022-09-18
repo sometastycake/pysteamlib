@@ -80,6 +80,13 @@ class SendOfferResponse(BaseModel):
     email_domain: Optional[str]
 
 
+class AcceptOfferResponse(BaseModel):
+    tradeid: Optional[int]
+    needs_mobile_confirmation: Optional[bool]
+    needs_email_confirmation: Optional[bool]
+    email_domain: Optional[str]
+
+
 class MobileConfirmation(BaseModel):
     confirmation_id: int
     confirmation_key: int

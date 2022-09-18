@@ -15,7 +15,7 @@ from steamlib.api.trade.handlers import (
     decline_offer_response_handler,
     send_offer_response_handler,
 )
-from steamlib.api.trade.schemas import MobileConfirmation, SendOfferRequest, SendOfferResponse
+from steamlib.api.trade.schemas import AcceptOfferResponse, MobileConfirmation, SendOfferRequest, SendOfferResponse
 
 
 class SteamTrade:
@@ -82,7 +82,7 @@ class SteamTrade:
         )
         return decline_offer_response_handler(response)
 
-    async def accept_offer(self, tradeofferid: int, partner_steamid: int) -> int:
+    async def accept_offer(self, tradeofferid: int, partner_steamid: int) -> AcceptOfferResponse:
         """
         Accept offer.
 
