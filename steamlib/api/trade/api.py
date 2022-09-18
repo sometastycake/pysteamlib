@@ -25,7 +25,7 @@ class SteamTrade:
 
     async def send_offer(self, request: SendOfferRequest) -> SendOfferResponse:
         """
-        Send offer.
+        Send offer to Steam.
         """
         response: str = await self.steam.request(
             method='POST',

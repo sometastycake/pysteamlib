@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from yarl import URL
 
 
@@ -34,14 +34,20 @@ class JsonTradeoffer(BaseModel):
 class TradeOfferParams(BaseModel):
     trade_offer_access_token: str = Field(description='User tradelink token')
 
+    @validator('trade_offer_access_token', pre=True)
+    def _trade_offer_access_token(cls, trade_offer_access_token: str) -> str:
+        if not trade_offer_access_token:
+            raise RuntimeError('Trade offer access token is empty')
+        return trade_offer_access_token
+
 
 class SendOfferRequest(BaseModel):
     captcha: str = ''
     serverid: str = '1'
     partner: int = Field(description='User to whom we send the exchange')
-    json_tradeoffer: JsonTradeoffer
+    json_tradeoffer: JsonTradeoffer = Field(description='Tradeoffer items')
     tradeoffermessage: str = ''
-    sessionid: str
+    sessionid: str = Field(description='Sessionid cookie value')
     trade_offer_create_params: TradeOfferParams = Field(
         description='Trade link token of the user to whom we are sending the exchange',
     )
@@ -49,6 +55,7 @@ class SendOfferRequest(BaseModel):
     def tradelink(self) -> str:
         """
         Get user tradelink.
+        Tradelink should be started with https.
         """
         params = {
             'partner': str(self.partner - 76561197960265728),
