@@ -6,10 +6,10 @@ from yarl import URL
 
 
 class Asset(BaseModel):
-    appid: str = Field(description='Appid of Steam game')
+    appid: str
     contextid: str
     amount: int = 1
-    assetid: str = Field(description='Assetid of item')
+    assetid: str
 
 
 class Me(BaseModel):
@@ -52,11 +52,13 @@ class SendOfferRequest(BaseModel):
         description='Trade link token of the user to whom we are sending the exchange',
     )
 
+    @validator('json_tradeoffer')
+    def _json_tradeoffer(cls, json_tradeoffer: JsonTradeoffer) -> JsonTradeoffer:
+        if not json_tradeoffer.me.assets and not json_tradeoffer.them.assets:
+            raise RuntimeError('Empty trade offer')
+        return json_tradeoffer
+
     def tradelink(self) -> str:
-        """
-        Get user tradelink.
-        Tradelink should be started with https.
-        """
         params = {
             'partner': str(self.partner - 76561197960265728),
             'token': self.trade_offer_create_params.trade_offer_access_token,
@@ -64,9 +66,6 @@ class SendOfferRequest(BaseModel):
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))
 
     def to_request(self) -> Dict:
-        """
-        Prepare data to request.
-        """
         data = self.dict()
         data['json_tradeoffer'] = json.dumps(data['json_tradeoffer'])
         data['trade_offer_create_params'] = json.dumps(data['trade_offer_create_params'])
