@@ -1,9 +1,9 @@
 import json
 import re
+from typing import Dict
 
-from pysteamauth.errors import UnknownSteamError, check_steam_error
+from pysteamauth.errors import check_steam_error
 
-from steamlib.api.trade.enums import OfferState
 from steamlib.api.trade.exceptions import (
     AccountOverflowError,
     ProfileSettingsError,
@@ -18,13 +18,26 @@ from steamlib.api.trade.schemas import AcceptOfferResponse, SendOfferResponse
 
 class OfferResponseHandler:
 
-    def __init__(self, response: str, offer_state: OfferState):
-        self.offer_state = offer_state
+    # Errors when sending an exchange
+    errors = [
+        ('Trade URL is no longer valid', TradelinkError),
+        ('is not available to trade', ProfileSettingsError),
+        ('inventory privacy is set', ProfileSettingsError),
+        ('they have a trade ban', TradeBanError),
+        ('maximum number of items', AccountOverflowError),
+        ('sent too many trade offers', TradeOffersLimitError),
+        ('server may be down', SteamServerDownError),
+    ]
+
+    def __init__(self, response: str):
         self.response = response
+
+        if not self.response or self.response == 'null':
+            raise SteamNullResponseError
 
     def _determine_error_code(self, steam_error: str) -> None:
         error = re.search(
-            pattern=r'. \((\d+)\)',
+            pattern=r'Please try again later. \((\d+)\)',
             string=steam_error,
         )
         if error and error.groups():
@@ -32,46 +45,39 @@ class OfferResponseHandler:
             check_steam_error(code)
 
     def _determine_error(self, steam_error: str) -> None:
-        errors = {
-            'Trade URL is no longer valid': TradelinkError,
-            'is not available to trade': ProfileSettingsError,
-            'they have a trade ban': TradeBanError,
-            'maximum number of items': AccountOverflowError,
-            'sent too many trade offers': TradeOffersLimitError,
-            'server may be down': SteamServerDownError,
-        }
-        for error in errors:
-            if error in steam_error:
-                raise errors[error]
+        for _error, _exception in self.errors:
+            if _error in steam_error:
+                raise _exception
 
-    def check_error(self) -> None:
-        """
-        Error response check.
-        """
-        if not self.response or self.response == 'null':
-            raise SteamNullResponseError
-
-        data = json.loads(self.response)
-
-        if self.offer_state in (OfferState.send, OfferState.accept) and 'strError' in data:
-            error = data['strError']
+    def _check_error_for_send_and_accept(self, response: Dict) -> None:
+        error = response.get('strError')
+        if isinstance(error, str):
             self._determine_error(error)
             self._determine_error_code(error)
-            raise UnknownSteamError(error_code=error)
 
-        if self.offer_state in (OfferState.cancel, OfferState.decline) and 'success' in data:
-            check_steam_error(error=data['success'])
+    def _check_error_for_cancel_and_decline(self, response: Dict) -> None:
+        success = response.get('success')
+        if isinstance(success, int):
+            check_steam_error(error=success)
 
     def send_offer(self) -> SendOfferResponse:
-        self.check_error()
+        self._check_error_for_send_and_accept(
+            response=json.loads(self.response),
+        )
         return SendOfferResponse.parse_raw(self.response)
 
     def accept_offer(self) -> AcceptOfferResponse:
-        self.check_error()
+        self._check_error_for_send_and_accept(
+            response=json.loads(self.response),
+        )
         return AcceptOfferResponse.parse_raw(self.response)
 
     def decline_offer(self) -> None:
-        return self.check_error()
+        return self._check_error_for_cancel_and_decline(
+            response=json.loads(self.response),
+        )
 
     def cancel_offer(self) -> None:
-        return self.check_error()
+        return self._check_error_for_cancel_and_decline(
+            response=json.loads(self.response),
+        )

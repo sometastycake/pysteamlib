@@ -4,7 +4,6 @@ from typing import List
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
-from steamlib.api.trade.enums import OfferState
 from steamlib.api.trade.exceptions import (
     InvalidAuthenticatorError,
     InvalidConfirmationPageError,
@@ -36,7 +35,7 @@ class SteamTrade:
                 'Referer': request.tradelink(),
             },
         )
-        return OfferResponseHandler(response, OfferState.send).send_offer()
+        return OfferResponseHandler(response).send_offer()
 
     async def cancel_offer(self, tradeofferid: int) -> None:
         """
@@ -55,13 +54,11 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/sent/',
             },
         )
-        return OfferResponseHandler(response, OfferState.cancel).cancel_offer()
+        return OfferResponseHandler(response).cancel_offer()
 
     async def decline_offer(self, tradeofferid: int) -> None:
         """
         Decline offer.
-
-        :param tradeofferid: Tradeofferid.
         """
         response: str = await self.steam.request(
             method='POST',
@@ -76,7 +73,7 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/',
             },
         )
-        return OfferResponseHandler(response, OfferState.decline).decline_offer()
+        return OfferResponseHandler(response).decline_offer()
 
     async def accept_offer(self, tradeofferid: int, partner_steamid: int) -> AcceptOfferResponse:
         """
@@ -99,7 +96,7 @@ class SteamTrade:
                 'Referer': f'https://steamcommunity.com/tradeoffer/{tradeofferid}/'
             },
         )
-        return OfferResponseHandler(response, OfferState.accept).accept_offer()
+        return OfferResponseHandler(response).accept_offer()
 
     def _parse_mobile_confirmations_response(self, response: str) -> List[MobileConfirmation]:
         """
@@ -126,7 +123,7 @@ class SteamTrade:
         confirmation_hash = self.steam.get_confirmation_hash(
             server_time=server_time,
         )
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             url='https://steamcommunity.com/mobileconf/conf',
             method='GET',
             cookies={
@@ -159,7 +156,7 @@ class SteamTrade:
             server_time=server_time,
             tag='allow',
         )
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             url='https://steamcommunity.com/mobileconf/ajaxop',
             method='GET',
             cookies={
