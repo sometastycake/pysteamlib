@@ -30,13 +30,17 @@ class TradelinkError(SendOfferError):
     """Tradelink may be incorrect."""
 
 
-class NotFoundMobileConfirmationError(Exception):
+class MobileConfirmationError(Exception):
+    """Base mobile confirmation error."""
+
+
+class NotFoundMobileConfirmationError(MobileConfirmationError):
     """No offer found pending mobile confirmation."""
 
 
-class InvalidAuthenticatorError(Exception):
+class InvalidAuthenticatorError(MobileConfirmationError):
     """Invalid authenticator."""
 
 
-class InvalidConfirmationPageError(Exception):
+class InvalidConfirmationPageError(MobileConfirmationError):
     """Invalid confirmation page."""
