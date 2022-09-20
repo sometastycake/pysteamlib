@@ -6,7 +6,6 @@ class InventoryError(Exception):
 
     def __str__(self) -> str:
         return str({
-            'exception': self.__class__.__name__,
             'appid': self.appid,
             'steamid': self.steamid,
         })
@@ -16,9 +15,9 @@ class NullInventoryError(InventoryError):
     ...
 
 
-class UnknownInventoryError(InventoryError):
+class PrivateInventoryError(InventoryError):
     ...
 
 
-class PrivateInventoryError(InventoryError):
+class UnknownInventoryError(InventoryError):
     ...

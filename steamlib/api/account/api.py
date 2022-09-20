@@ -6,7 +6,6 @@ from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 from yarl import URL
 
-from steamlib.api.account.enums import Language
 from steamlib.api.account.exceptions import KeyRegistrationError
 from steamlib.api.account.schemas import (
     AvatarResponse,
@@ -16,6 +15,7 @@ from steamlib.api.account.schemas import (
     ProfileInfo,
     ProfileInfoResponse,
 )
+from steamlib.api.enums import Language
 from steamlib.errors.exceptions import UnauthorizedSteamRequestError
 from steamlib.errors.response import check_steam_error_from_response
 
