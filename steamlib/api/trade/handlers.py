@@ -23,7 +23,7 @@ class OfferResponseHandler:
         ('Trade URL is no longer valid', TradelinkError, ''),
         ('is not available to trade', ProfileSettingsError, 'Account is not available for trade offers'),
         ('inventory privacy is set', ProfileSettingsError, ''),
-        ('they have a trade ban', TradeBanError, ''),
+        ('they have a trade ban', TradeBanError, 'User have trade ban'),
         ('maximum number of items', AccountOverflowError, ''),
         ('sent too many trade offers', TradeOffersLimitError, 'Too many exchange offers have been sent'),
         ('server may be down', SteamServerDownError, ''),
