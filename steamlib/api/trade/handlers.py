@@ -20,13 +20,13 @@ class OfferResponseHandler:
 
     # Errors when sending an exchange
     errors = [
-        ('Trade URL is no longer valid', TradelinkError),
-        ('is not available to trade', ProfileSettingsError),
-        ('inventory privacy is set', ProfileSettingsError),
-        ('they have a trade ban', TradeBanError),
-        ('maximum number of items', AccountOverflowError),
-        ('sent too many trade offers', TradeOffersLimitError),
-        ('server may be down', SteamServerDownError),
+        ('Trade URL is no longer valid', TradelinkError, ''),
+        ('is not available to trade', ProfileSettingsError, 'Account is not available for trade offers'),
+        ('inventory privacy is set', ProfileSettingsError, ''),
+        ('they have a trade ban', TradeBanError, ''),
+        ('maximum number of items', AccountOverflowError, ''),
+        ('sent too many trade offers', TradeOffersLimitError, 'Too many exchange offers have been sent'),
+        ('server may be down', SteamServerDownError, ''),
     ]
 
     def __init__(self, response: str):
@@ -45,9 +45,9 @@ class OfferResponseHandler:
             check_steam_error(code)
 
     def _determine_error(self, steam_error: str) -> None:
-        for _error, _exception in self.errors:
+        for _error, _exception, _exception_message in self.errors:
             if _error in steam_error:
-                raise _exception
+                raise _exception(_exception_message)
 
     def _check_error_for_send_and_accept(self, response: Dict) -> None:
         error = response.get('strError')
