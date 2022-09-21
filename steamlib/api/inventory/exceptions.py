@@ -6,6 +6,7 @@ class InventoryError(Exception):
 
     def __str__(self) -> str:
         return str({
+            'exception': self.__class__.__name__,
             'appid': self.appid,
             'steamid': self.steamid,
         })
