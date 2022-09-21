@@ -20,13 +20,12 @@ class OfferResponseHandler:
 
     # Errors when sending an exchange
     errors = [
-        ('Trade URL is no longer valid', TradelinkError, ''),
+        ('Trade URL is no longer valid', TradelinkError, 'Trade URL is no longer valid'),
         ('is not available to trade', ProfileSettingsError, 'Account is not available for trade offers'),
-        ('inventory privacy is set', ProfileSettingsError, ''),
-        ('they have a trade ban', TradeBanError, 'User have trade ban'),
-        ('maximum number of items', AccountOverflowError, ''),
+        ('they have a trade ban', TradeBanError, 'User has a trade ban'),
+        ('maximum number of items', AccountOverflowError, 'Maximum number of items per account'),
         ('sent too many trade offers', TradeOffersLimitError, 'Too many exchange offers have been sent'),
-        ('server may be down', SteamServerDownError, ''),
+        ('server may be down', SteamServerDownError, 'Steam server may be down'),
     ]
 
     def __init__(self, response: str):
