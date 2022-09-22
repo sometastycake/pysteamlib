@@ -142,9 +142,13 @@ class SteamTrade:
             },
         )
         if '<div>Invalid authenticator</div>' in response:
-            raise InvalidAuthenticatorError
+            raise InvalidAuthenticatorError(
+                'Invalid authenticator',
+            )
         if 'There was a problem loading the confirmations page' in response:
-            raise InvalidConfirmationPageError
+            raise InvalidConfirmationPageError(
+                'Invalid confirmation page',
+            )
         return self._parse_mobile_confirmations_response(response)
 
     async def mobile_confirm(self, confirmation: MobileConfirmation) -> bool:
