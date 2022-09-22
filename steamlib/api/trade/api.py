@@ -119,8 +119,10 @@ class SteamTrade:
         """
         Get mobile confirmations.
         """
-        server_time = await self.steam.get_server_time()
-        confirmation_hash = self.steam.get_confirmation_hash(
+        if not self.steam.authenticator:
+            raise RuntimeError('Authenticator not specified')
+        server_time: int = await self.steam.get_server_time()
+        confirmation_hash: str = self.steam.get_confirmation_hash(
             server_time=server_time,
         )
         response: str = await self.steam.request(
@@ -155,8 +157,10 @@ class SteamTrade:
         """
         Mobile confirm.
         """
-        server_time = await self.steam.get_server_time()
-        confirmation_hash = self.steam.get_confirmation_hash(
+        if not self.steam.authenticator:
+            raise RuntimeError('Authenticator not specified')
+        server_time: int = await self.steam.get_server_time()
+        confirmation_hash: str = self.steam.get_confirmation_hash(
             server_time=server_time,
             tag='allow',
         )
@@ -185,7 +189,7 @@ class SteamTrade:
         """
         Mobile confirm by tradeofferid.
         """
-        confirmations = await self.get_mobile_confirmations()
+        confirmations: List[MobileConfirmation] = await self.get_mobile_confirmations()
         for confirmation in confirmations:
             if confirmation.tradeofferid == tradeofferid:
                 return await self.mobile_confirm(confirmation)
