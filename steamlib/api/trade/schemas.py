@@ -9,7 +9,7 @@ class Asset(BaseModel):
     appid: str
     contextid: str
     amount: int = 1
-    assetid: str
+    assetid: str = Field(regex=r'^\d+$')
 
 
 class Me(BaseModel):

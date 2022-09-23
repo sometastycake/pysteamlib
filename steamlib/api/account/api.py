@@ -4,6 +4,7 @@ import aiofiles
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
+from pysteamauth.errors.exceptions import UnauthorizedSteamRequestError
 from yarl import URL
 
 from steamlib.api.account.exceptions import KeyRegistrationError
@@ -16,7 +17,6 @@ from steamlib.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steamlib.api.enums import Language
-from steamlib.errors.exceptions import UnauthorizedSteamRequestError
 from steamlib.errors.response import check_steam_error_from_response
 
 
@@ -37,7 +37,7 @@ class SteamAccount:
             },
         )
         if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(url=url)
+            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
         return response
 
     async def get_nickname_history(self) -> NicknameHistory:
@@ -174,7 +174,7 @@ class SteamAccount:
             },
         )
         if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(url=url)
+            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
 
     async def register_api_key(self, domain: str) -> str:
         """
@@ -197,7 +197,7 @@ class SteamAccount:
         )
 
         if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(url=url)
+            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
 
         error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
         if error in response:
@@ -258,5 +258,5 @@ class SteamAccount:
             },
         )
         if response == '#Error_BadOrMissingSteamID':
-            raise UnauthorizedSteamRequestError(url=url)
+            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
         return AvatarResponse.parse_raw(response)
