@@ -1,4 +1,5 @@
 import json
+from typing import List
 
 import aiofiles
 from aiohttp import FormData
@@ -7,7 +8,7 @@ from pysteamauth.auth import Steam
 from pysteamauth.errors.exceptions import UnauthorizedSteamRequestError
 from yarl import URL
 
-from steamlib.api.account.exceptions import KeyRegistrationError
+from steamlib.api.account.exceptions import KeyRegistrationError, ProfileError
 from steamlib.api.account.schemas import (
     AvatarResponse,
     NicknameHistory,
@@ -25,6 +26,15 @@ class SteamAccount:
     def __init__(self, steam: Steam):
         self.steam = steam
 
+    def _check_profile_error(self, response: str) -> None:
+        if 'class="profile_fatalerror_message"' in response:
+            page: HtmlElement = document_fromstring(response)
+            tag: List[HtmlElement] = page.cssselect('.profile_fatalerror .profile_fatalerror_message')
+            message = 'Profile error'
+            if tag:
+                message = tag[0].text
+            raise ProfileError(message)
+
     async def _get_profile_editing_page(self) -> str:
         """
         Get profile editing page.
@@ -38,6 +48,7 @@ class SteamAccount:
         )
         if str(self.steam.steamid) not in response:
             raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
+        self._check_profile_error(response)
         return response
 
     async def get_nickname_history(self) -> NicknameHistory:
