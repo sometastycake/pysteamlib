@@ -4,13 +4,9 @@ from typing import List
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
-from steamlib.api.trade.exceptions import (
-    InvalidAuthenticatorError,
-    InvalidConfirmationPageError,
-    NotFoundMobileConfirmationError,
-)
-from steamlib.api.trade.handlers import OfferResponseHandler
-from steamlib.api.trade.schemas import AcceptOfferResponse, MobileConfirmation, SendOfferRequest, SendOfferResponse
+from .exceptions import InvalidAuthenticatorError, InvalidConfirmationPageError, NotFoundMobileConfirmationError
+from .handlers import OfferResponseHandler
+from .schemas import AcceptOfferResponse, MobileConfirmation, SendOfferRequest, SendOfferResponse
 
 
 class SteamTrade:

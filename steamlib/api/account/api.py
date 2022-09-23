@@ -207,6 +207,9 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
             },
+            cookies={
+                'Steam_Language': 'english',
+            },
         )
 
         if str(self.steam.steamid) not in response:

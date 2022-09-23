@@ -4,16 +4,15 @@ from typing import Dict
 
 from pysteamauth.errors import check_steam_error
 
-from steamlib.api.trade.exceptions import (
+from .exceptions import (
     AccountOverflowError,
     ProfileSettingsError,
-    SteamNullResponseError,
     SteamServerDownError,
     TradeBanError,
     TradelinkError,
     TradeOffersLimitError,
 )
-from steamlib.api.trade.schemas import AcceptOfferResponse, SendOfferResponse
+from .schemas import AcceptOfferResponse, SendOfferResponse
 
 
 class OfferResponseHandler:
@@ -30,9 +29,6 @@ class OfferResponseHandler:
 
     def __init__(self, response: str):
         self.response = response
-
-        if not self.response or self.response == 'null':
-            raise SteamNullResponseError
 
     def _determine_error_code(self, steam_error: str) -> None:
         error = re.search(

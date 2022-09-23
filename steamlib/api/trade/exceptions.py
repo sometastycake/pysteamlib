@@ -2,10 +2,6 @@ class SendOfferError(Exception):
     """Error sending exchange."""
 
 
-class SteamNullResponseError(SendOfferError):
-    """If response from Steam is null."""
-
-
 class SteamServerDownError(SendOfferError):
     """Steam servers may be down."""
 

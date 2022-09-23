@@ -1,43 +1,20 @@
-from pysteamauth.auth import Steam
+import account
+import inventory
+import market
+import store
+import support
+import trade
 
-from steamlib.api.account.api import SteamAccount
-from steamlib.api.inventory.api import SteamInventory
-from steamlib.api.market.api import SteamMarket
-from steamlib.api.store.api import SteamStore
-from steamlib.api.support.api import SteamSupport
-from steamlib.api.trade.api import SteamTrade
+from .enums import Language
+from .facade import SteamAPI
 
-
-class SteamAPI:
-
-    def __init__(self, steam: Steam):
-        self._account = SteamAccount(steam)
-        self._inventory = SteamInventory(steam)
-        self._market = SteamMarket(steam)
-        self._store = SteamStore(steam)
-        self._support = SteamSupport(steam)
-        self._trade = SteamTrade(steam)
-
-    @property
-    def account(self) -> SteamAccount:
-        return self._account
-
-    @property
-    def inventory(self) -> SteamInventory:
-        return self._inventory
-
-    @property
-    def market(self) -> SteamMarket:
-        return self._market
-
-    @property
-    def store(self) -> SteamStore:
-        return self._store
-
-    @property
-    def support(self) -> SteamSupport:
-        return self._support
-
-    @property
-    def trade(self) -> SteamTrade:
-        return self._trade
+__all__ = [
+    'SteamAPI',
+    'account',
+    'inventory',
+    'market',
+    'store',
+    'support',
+    'trade',
+    'Language',
+]
