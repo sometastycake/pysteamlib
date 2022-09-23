@@ -3,7 +3,6 @@ from typing import Dict
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
-from steamlib.api.account.api import SteamAccount
 from steamlib.api.store.purchase.schemas import (
     FinalizeTransactionResponse,
     FinalPriceRequest,
@@ -20,7 +19,6 @@ class PurchaseGame:
         self.game = game
         self.appid = appid
         self.steam = steam
-        self.account_api = SteamAccount(steam)
 
     async def game_page(self) -> HtmlElement:
         """
@@ -28,7 +26,7 @@ class PurchaseGame:
 
         :return: Parsed html page.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             url=f'https://store.steampowered.com/app/{self.appid}',
         )
         return document_fromstring(response)
@@ -39,7 +37,7 @@ class PurchaseGame:
 
         :return: Data for game adding to cart.
         """
-        page = await self.game_page()
+        page: HtmlElement = await self.game_page()
         result = {}
         for param in ('snr', 'originating_snr', 'action', 'sessionid', 'subid'):
             result[param] = page.cssselect(f'input[name="{param}"]')[0].attrib['value']
@@ -51,7 +49,7 @@ class PurchaseGame:
 
         :return: Cart number.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/cart/',
             data=await self.get_data_for_cart(),
@@ -70,7 +68,7 @@ class PurchaseGame:
 
         :return: Transaction data.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/inittransaction/',
             data=request.dict(),
@@ -93,7 +91,7 @@ class PurchaseGame:
 
         :return: Finalize transaction status.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/finalizetransaction/',
             data={
@@ -119,7 +117,7 @@ class PurchaseGame:
 
         :return: Transaction status.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/transactionstatus/',
             data={
@@ -144,7 +142,7 @@ class PurchaseGame:
 
         :return: Final price status.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             url='https://store.steampowered.com/checkout/getfinalprice/',
             method='GET',
             params=request.dict(),
@@ -163,8 +161,8 @@ class PurchaseGame:
         """
         Purshase game.
         """
-        cart_number = await self.add_to_cart()
-        transaction = await self.init_transaction(
+        cart_number: int = await self.add_to_cart()
+        transaction: PurshaseTransactionResponse = await self.init_transaction(
             request=PurshaseTransactionRequest(
                 gidShoppingCart=cart_number,
                 sessionid=await self.steam.sessionid(),

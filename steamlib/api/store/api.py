@@ -2,6 +2,7 @@ import json
 
 from pysteamauth.auth import Steam
 
+from steamlib.api.store.purchase.api import PurchaseGame
 from steamlib.api.store.schemas import GamePrice
 
 
@@ -26,3 +27,9 @@ class SteamStore:
         )
         content = json.loads(response)
         return GamePrice.parse_obj(content[appid])
+
+    async def purchase_game(self, game: str, appid: int) -> None:
+        """
+        Purchage game.
+        """
+        await PurchaseGame(self.steam, game, appid).purchase()
