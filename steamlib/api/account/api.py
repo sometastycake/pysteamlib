@@ -45,6 +45,9 @@ class SteamAccount:
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
+            cookies={
+                'Steam_Language': 'english',
+            },
         )
         if str(self.steam.steamid) not in response:
             raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
