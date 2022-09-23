@@ -1,6 +1,5 @@
 from typing import Dict
 
-from aiocache import cached
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
@@ -13,7 +12,6 @@ from steamlib.api.store.purchase.schemas import (
     PurshaseTransactionResponse,
     TransactionStatusResponse,
 )
-from steamlib.errors.response import check_steam_error_from_response
 
 
 class PurchaseGame:
@@ -24,7 +22,6 @@ class PurchaseGame:
         self.steam = steam
         self.account_api = SteamAccount(steam)
 
-    @cached(ttl=30)
     async def game_page(self) -> HtmlElement:
         """
         Get game page.
@@ -87,7 +84,7 @@ class PurchaseGame:
             response_model=PurshaseTransactionResponse,
         )
         result = PurshaseTransactionResponse.parse_raw(response)
-        check_steam_error_from_response(result)
+        result.check_error()
         return result
 
     async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
@@ -113,7 +110,7 @@ class PurchaseGame:
             },
         )
         result = FinalizeTransactionResponse.parse_raw(response)
-        check_steam_error_from_response(result)
+        result.check_error()
         return result
 
     async def transaction_status(self, transid: str) -> TransactionStatusResponse:
@@ -138,7 +135,7 @@ class PurchaseGame:
             },
         )
         result = TransactionStatusResponse.parse_raw(response)
-        check_steam_error_from_response(result)
+        result.check_error()
         return result
 
     async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
@@ -159,7 +156,7 @@ class PurchaseGame:
             },
         )
         result = FinalPriceResponse.parse_raw(response)
-        check_steam_error_from_response(result)
+        result.check_error()
         return result
 
     async def purchase(self) -> None:

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from steam.schemas import BaseSteamResponse
+
+from steamlib.schemas import BaseSteamResponse
 
 
 class PurshaseTransactionRequest(BaseModel):

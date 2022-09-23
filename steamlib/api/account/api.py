@@ -18,7 +18,6 @@ from steamlib.api.account.schemas import (
     ProfileInfoResponse,
 )
 from steamlib.api.enums import Language
-from steamlib.errors.response import check_steam_error_from_response
 
 
 class SteamAccount:
@@ -132,7 +131,7 @@ class SteamAccount:
             },
         )
         result = ProfileInfoResponse.parse_raw(response)
-        check_steam_error_from_response(result)
+        result.check_error()
         return result
 
     async def get_current_privacy(self) -> PrivacyInfo:
@@ -166,7 +165,7 @@ class SteamAccount:
             },
         )
         result = PrivacyResponse.parse_raw(response)
-        check_steam_error_from_response(result)
+        result.check_error()
         return result
 
     async def revoke_api_key(self) -> None:
