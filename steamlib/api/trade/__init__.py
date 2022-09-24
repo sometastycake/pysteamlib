@@ -1,5 +1,3 @@
-import exceptions
-
 from .api import SteamTrade
 from .handlers import OfferResponseHandler
 from .schemas import (
@@ -16,7 +14,6 @@ from .schemas import (
 
 __all__ = [
     'SteamTrade',
-    'exceptions',
     'OfferResponseHandler',
     'Asset',
     'Me',
