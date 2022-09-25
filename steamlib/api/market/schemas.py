@@ -18,7 +18,7 @@ class PriceHistoryResponse(BaseModel):
     prices: Optional[List[Sale]]
 
     @validator('prices', pre=True)
-    def _prices(cls, value) -> Optional[List]:
+    def _prices(cls, value) -> Optional[List]:  # noqa:U100
         if not value:
             return None
         prices = []

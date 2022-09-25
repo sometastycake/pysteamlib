@@ -35,7 +35,7 @@ class TradeOfferParams(BaseModel):
     trade_offer_access_token: str = Field(description='User tradelink token')
 
     @validator('trade_offer_access_token', pre=True)
-    def _trade_offer_access_token(cls, trade_offer_access_token: str) -> str:
+    def _trade_offer_access_token(cls, trade_offer_access_token: str) -> str:  # noqa:U100
         if not trade_offer_access_token:
             raise RuntimeError('Trade offer access token is empty')
         return trade_offer_access_token
@@ -53,7 +53,7 @@ class SendOfferRequest(BaseModel):
     )
 
     @validator('json_tradeoffer')
-    def _json_tradeoffer(cls, json_tradeoffer: JsonTradeoffer) -> JsonTradeoffer:
+    def _json_tradeoffer(cls, json_tradeoffer: JsonTradeoffer) -> JsonTradeoffer:  # noqa:U100
         if not json_tradeoffer.me.assets and not json_tradeoffer.them.assets:
             raise RuntimeError('Empty trade offer')
         return json_tradeoffer

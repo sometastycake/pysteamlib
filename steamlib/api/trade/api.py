@@ -89,7 +89,7 @@ class SteamTrade:
                 'Accept': '*/*',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': f'https://steamcommunity.com/tradeoffer/{tradeofferid}/'
+                'Referer': f'https://steamcommunity.com/tradeoffer/{tradeofferid}/',
             },
         )
         return OfferResponseHandler(response).accept_offer()

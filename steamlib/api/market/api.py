@@ -22,7 +22,7 @@ class SteamMarket:
             cookies={
                 **cookies,
                 'Steam_Language': 'english',
-            }
+            },
         )
         return 'The Market is unavailable for the following reason(s):' not in response
 
