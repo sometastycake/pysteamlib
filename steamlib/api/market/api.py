@@ -12,7 +12,6 @@ class SteamMarket:
         """
         Is market available.
         """
-        cookies = await self.steam.cookies()
         response = await self.steam.request(
             url='https://steamcommunity.com/market/',
             headers={
@@ -20,7 +19,6 @@ class SteamMarket:
                 'Upgrade-Insecure-Requests': '1',
             },
             cookies={
-                **cookies,
                 'Steam_Language': 'english',
             },
         )

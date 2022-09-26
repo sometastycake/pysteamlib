@@ -22,6 +22,11 @@ from steamlib.api.enums import Language
 
 class SteamAccount:
 
+    api_key_registration_errors = [
+        'Your account currently has restricted functionality and cannot register for a Steam Web API Key',
+        'You will be granted access to Steam Web API keys when you have games in your Steam account.',
+    ]
+
     def __init__(self, steam: Steam):
         self.steam = steam
 
@@ -215,9 +220,9 @@ class SteamAccount:
         if str(self.steam.steamid) not in response:
             raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
 
-        error = 'You will be granted access to Steam Web API keys when you have games in your Steam account.'
-        if error in response:
-            raise KeyRegistrationError(error)
+        for error in self.api_key_registration_errors:
+            if error in response:
+                raise KeyRegistrationError(error)
 
         page: HtmlElement = document_fromstring(response)
         key = page.cssselect('#bodyContents_ex > p:nth-child(2)')[0].text

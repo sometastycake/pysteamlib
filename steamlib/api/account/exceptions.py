@@ -3,4 +3,4 @@ class KeyRegistrationError(Exception):
 
 
 class ProfileError(Exception):
-    ...
+    """Error getting profile settings."""

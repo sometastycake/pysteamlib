@@ -2,10 +2,10 @@ import setuptools
 from setuptools import setup
 
 requirements = [
-    'pysteamauth>=0.0.1',
+    'pysteamauth>=0.0.5',
     'aiofiles>=22.1.0',
     'cssselect>=1.1.0',
-    'lxml>=4.9.1'
+    'lxml>=4.9.1',
 ]
 
 
@@ -16,7 +16,7 @@ setup(
     license='MIT',
     author='Mike M',
     author_email='stopthisworldplease@outlook.com',
-    description='pysteamlib',
+    description='Python Steam library',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     packages=setuptools.find_packages(),
