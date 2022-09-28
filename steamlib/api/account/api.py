@@ -281,3 +281,20 @@ class SteamAccount:
         if response == '#Error_BadOrMissingSteamID':
             raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
         return AvatarResponse.parse_raw(response)
+
+    async def get_tradelink(self) -> str:
+        """
+        Get tradelink.
+        """
+        url = f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/privacy'
+        response: str = await self.steam.request(
+            url=url,
+            headers={
+                'Referer': f'ttps://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/'
+            }
+        )
+        if str(self.steam.steamid) not in response:
+            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
+
+        page: HtmlElement = document_fromstring(response)
+        return page.get_element_by_id('trade_offer_access_url').value
