@@ -31,28 +31,3 @@ class PriceHistoryResponse(BaseModel):
                 ),
             )
         return prices
-
-
-class Appid(BaseModel):
-    appid: int
-    name: str
-
-
-class Applist(BaseModel):
-    apps: List[Appid]
-
-
-class ApplistResponse(BaseModel):
-    applist: Applist
-
-    @validator('applist')
-    def _applist(cls, value: Applist) -> Applist:
-        appid_by_name = {}
-        for appid in value.apps:
-            if appid.name:
-                appid_by_name[appid.name] = appid.appid
-        setattr(cls, 'appid_by_name', appid_by_name)
-        return value
-
-    def get_appid_by_name(self, name: str) -> int:
-        return getattr(self, 'appid_by_name')[name]

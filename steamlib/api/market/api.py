@@ -12,7 +12,7 @@ class SteamMarket:
         """
         Is market available.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             url='https://steamcommunity.com/market/',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
@@ -28,7 +28,7 @@ class SteamMarket:
         """
         Price history.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             url='https://steamcommunity.com/market/pricehistory/',
             params={
                 'country': 'US',
