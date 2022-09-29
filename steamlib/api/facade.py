@@ -4,7 +4,6 @@ from steamlib.api.account.api import SteamAccount
 from steamlib.api.inventory.api import SteamInventory
 from steamlib.api.market.api import SteamMarket
 from steamlib.api.store.api import SteamStore
-from steamlib.api.support.api import SteamSupport
 from steamlib.api.trade.api import SteamTrade
 
 
@@ -15,7 +14,6 @@ class SteamAPI:
         self._inventory = SteamInventory(steam)
         self._market = SteamMarket(steam)
         self._store = SteamStore(steam)
-        self._support = SteamSupport(steam)
         self._trade = SteamTrade(steam)
 
     @property
@@ -33,10 +31,6 @@ class SteamAPI:
     @property
     def store(self) -> SteamStore:
         return self._store
-
-    @property
-    def support(self) -> SteamSupport:
-        return self._support
 
     @property
     def trade(self) -> SteamTrade:
