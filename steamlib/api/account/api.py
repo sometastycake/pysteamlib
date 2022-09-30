@@ -5,7 +5,6 @@ import aiofiles
 from aiohttp import FormData
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
-from pysteamauth.errors.exceptions import UnauthorizedSteamRequestError
 from yarl import URL
 
 from steamlib.api.account.exceptions import KeyRegistrationError, ProfileError
@@ -43,9 +42,8 @@ class SteamAccount:
         """
         Get profile editing page.
         """
-        url = f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/info'
-        response = await self.steam.request(
-            url=url,
+        response: str = await self.steam.request(
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             },
@@ -53,8 +51,6 @@ class SteamAccount:
                 'Steam_Language': 'english',
             },
         )
-        if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
         self._check_profile_error(response)
         return response
 
@@ -78,7 +74,7 @@ class SteamAccount:
         """
         Change account language.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url='https://steamcommunity.com/actions/SetLanguage/',
             data={
@@ -98,7 +94,7 @@ class SteamAccount:
         """
         Get profile info.
         """
-        response = await self._get_profile_editing_page()
+        response: str = await self._get_profile_editing_page()
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
         return ProfileInfo(
@@ -116,7 +112,7 @@ class SteamAccount:
         """
         Set profile info.
         """
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/',
             data=FormData(
@@ -143,7 +139,7 @@ class SteamAccount:
         """
         Get privacy settings.
         """
-        response = await self._get_profile_editing_page()
+        response: str = await self._get_profile_editing_page()
         page: HtmlElement = document_fromstring(response)
         info = json.loads(page.cssselect('#profile_edit_config')[0].attrib['data-profile-edit'])
         return PrivacyInfo(**info['Privacy'])
@@ -152,10 +148,9 @@ class SteamAccount:
         """
         Privacy settings.
         """
-        url = f'https://steamcommunity.com/profiles/{self.steam.steamid}/ajaxsetprivacy/'
         response: str = await self.steam.request(
             method='POST',
-            url=url,
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/ajaxsetprivacy/',
             data=FormData(
                 fields=[
                     ('sessionid', await self.steam.sessionid()),
@@ -177,9 +172,8 @@ class SteamAccount:
         """
         Revoke api key.
         """
-        url = 'https://steamcommunity.com/dev/revokekey'
-        response = await self.steam.request(
-            url=url,
+        await self.steam.request(
+            url='https://steamcommunity.com/dev/revokekey',
             method='POST',
             data={
                 'Revoke': 'Revoke My Steam Web API Key',
@@ -191,16 +185,13 @@ class SteamAccount:
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
         )
-        if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
 
     async def register_api_key(self, domain: str) -> str:
         """
         Register api key.
         """
-        url = 'https://steamcommunity.com/dev/registerkey'
-        response = await self.steam.request(
-            url=url,
+        response: str = await self.steam.request(
+            url='https://steamcommunity.com/dev/registerkey',
             method='POST',
             data={
                 'domain': domain,
@@ -217,9 +208,6 @@ class SteamAccount:
             },
         )
 
-        if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
-
         for error in self.api_key_registration_errors:
             if error in response:
                 raise KeyRegistrationError(error)
@@ -232,7 +220,7 @@ class SteamAccount:
         """
         Register tradelink.
         """
-        token = await self.steam.request(
+        token: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/newtradeurl',
             data={
@@ -259,10 +247,9 @@ class SteamAccount:
         """
         async with aiofiles.open(path_to_avatar, mode='rb') as file:
             image = await file.read()
-        url = 'https://steamcommunity.com/actions/FileUploader/'
-        response = await self.steam.request(
+        response: str = await self.steam.request(
             method='POST',
-            url=url,
+            url='https://steamcommunity.com/actions/FileUploader/',
             data=FormData(
                 fields=[
                     ('avatar', image),
@@ -278,23 +265,21 @@ class SteamAccount:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/avatar',
             },
         )
-        if response == '#Error_BadOrMissingSteamID':
-            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
         return AvatarResponse.parse_raw(response)
 
     async def get_tradelink(self) -> str:
         """
         Get tradelink.
         """
-        url = f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/privacy'
         response: str = await self.steam.request(
-            url=url,
+            url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/privacy',
             headers={
-                'Referer': f'ttps://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/'
-            }
+                'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/',
+            },
+            cookies={
+                'Steam_Language': 'english',
+            },
         )
-        if str(self.steam.steamid) not in response:
-            raise UnauthorizedSteamRequestError(f'Unauthorized request to "{url}"')
 
         page: HtmlElement = document_fromstring(response)
         return page.get_element_by_id('trade_offer_access_url').value

@@ -2,7 +2,7 @@ import setuptools
 from setuptools import setup
 
 requirements = [
-    'pysteamauth>=0.0.6',
+    'pysteamauth>=0.0.7',
     'aiofiles>=22.1.0',
     'cssselect>=1.1.0',
     'lxml>=4.9.1',
