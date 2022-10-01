@@ -4,7 +4,8 @@ from typing import Dict
 from pysteamauth.auth import Steam
 
 from steamlib.api.enums import Language
-from steamlib.api.inventory.exceptions import NullInventoryError, PrivateInventoryError, UnknownInventoryError
+
+from .exceptions import NullInventoryError, PrivateInventoryError, UnknownInventoryError
 
 
 class SteamInventory:
@@ -22,6 +23,7 @@ class SteamInventory:
             headers={
                 'Content-Type': 'application/json',
             },
+            raise_for_status=True,
         )
         if response == 'null':
             raise NullInventoryError(steamid=self.steam.steamid, appid=appid)

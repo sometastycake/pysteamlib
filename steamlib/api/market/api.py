@@ -1,6 +1,6 @@
 from pysteamauth.auth import Steam
 
-from steamlib.api.market.schemas import PriceHistoryResponse
+from .schemas import PriceHistoryResponse
 
 
 class SteamMarket:

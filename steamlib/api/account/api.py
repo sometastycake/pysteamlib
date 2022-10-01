@@ -7,16 +7,10 @@ from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 from yarl import URL
 
-from steamlib.api.account.exceptions import KeyRegistrationError, ProfileError
-from steamlib.api.account.schemas import (
-    AvatarResponse,
-    NicknameHistory,
-    PrivacyInfo,
-    PrivacyResponse,
-    ProfileInfo,
-    ProfileInfoResponse,
-)
 from steamlib.api.enums import Language
+
+from .exceptions import KeyRegistrationError, ProfileError
+from .schemas import AvatarResponse, NicknameHistory, PrivacyInfo, PrivacyResponse, ProfileInfo, ProfileInfoResponse
 
 
 class SteamAccount:
@@ -50,6 +44,7 @@ class SteamAccount:
             cookies={
                 'Steam_Language': 'english',
             },
+            raise_for_status=True,
         )
         self._check_profile_error(response)
         return response
@@ -67,6 +62,7 @@ class SteamAccount:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/',
                 'Origin': 'https://steamcommunity.com',
             },
+            raise_for_status=True,
         )
         return NicknameHistory.parse_raw(response)
 
@@ -87,6 +83,7 @@ class SteamAccount:
                 'X-Requested-With:': 'XMLHttpRequest',
                 'Origin': 'https://steamcommunity.com',
             },
+            raise_for_status=True,
         )
         return True if response == 'true' else False
 
@@ -130,6 +127,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/info',
             },
+            raise_for_status=True,
         )
         result = ProfileInfoResponse.parse_raw(response)
         result.check_error()
@@ -163,6 +161,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/settings',
             },
+            raise_for_status=True,
         )
         result = PrivacyResponse.parse_raw(response)
         result.check_error()
@@ -184,6 +183,7 @@ class SteamAccount:
                 'Referer': 'https://steamcommunity.com/dev/apikey',
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
+            raise_for_status=True,
         )
 
     async def register_api_key(self, domain: str) -> str:
@@ -206,6 +206,7 @@ class SteamAccount:
             cookies={
                 'Steam_Language': 'english',
             },
+            raise_for_status=True,
         )
 
         for error in self.api_key_registration_errors:
@@ -233,6 +234,7 @@ class SteamAccount:
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/privacy',
                 'X-Requested-With': 'XMLHttpRequest',
             },
+            raise_for_status=True,
         )
 
         params = {
@@ -264,6 +266,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/avatar',
             },
+            raise_for_status=True,
         )
         return AvatarResponse.parse_raw(response)
 
@@ -279,6 +282,7 @@ class SteamAccount:
             cookies={
                 'Steam_Language': 'english',
             },
+            raise_for_status=True,
         )
 
         page: HtmlElement = document_fromstring(response)
