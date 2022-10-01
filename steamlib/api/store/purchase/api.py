@@ -3,7 +3,7 @@ from typing import Dict
 from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
-from steamlib.api.store.purchase.schemas import (
+from .schemas import (
     FinalizeTransactionResponse,
     FinalPriceRequest,
     FinalPriceResponse,
@@ -15,8 +15,7 @@ from steamlib.api.store.purchase.schemas import (
 
 class PurchaseGame:
 
-    def __init__(self, steam: Steam, game: str, appid: int):
-        self.game = game
+    def __init__(self, steam: Steam, appid: str):
         self.appid = appid
         self.steam = steam
 
@@ -27,7 +26,7 @@ class PurchaseGame:
         :return: Parsed html page.
         """
         response: str = await self.steam.request(
-            url=f'https://store.steampowered.com/app/{self.appid}',
+            url=f'https://store.steampowered.com/app/{self.appid}/',
         )
         return document_fromstring(response)
 
@@ -49,14 +48,15 @@ class PurchaseGame:
 
         :return: Cart number.
         """
+        cart_data = await self.get_data_for_cart()
         response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/cart/',
-            data=await self.get_data_for_cart(),
+            data=cart_data,
             headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Origin': 'https://store.steampowered.com',
-                'Referer': f'https://store.steampowered.com/app/{self.appid}/{self.game}/',
+                'Referer': f'https://store.steampowered.com/app/{self.appid}',
             },
         )
         page: HtmlElement = document_fromstring(response)
@@ -79,7 +79,6 @@ class PurchaseGame:
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-Prototype-Version:': '1.7',
             },
-            response_model=PurshaseTransactionResponse,
         )
         result = PurshaseTransactionResponse.parse_raw(response)
         result.check_error()
@@ -157,7 +156,7 @@ class PurchaseGame:
         result.check_error()
         return result
 
-    async def purchase(self) -> None:
+    async def purchase(self) -> TransactionStatusResponse:
         """
         Purshase game.
         """
@@ -165,7 +164,7 @@ class PurchaseGame:
         transaction: PurshaseTransactionResponse = await self.init_transaction(
             request=PurshaseTransactionRequest(
                 gidShoppingCart=cart_number,
-                sessionid=await self.steam.sessionid(),
+                sessionid=await self.steam.sessionid(domain='store.steampowered.com'),
             ),
         )
         await self.final_price(
@@ -175,4 +174,4 @@ class PurchaseGame:
             ),
         )
         await self.finalize_transaction(transaction.transid)
-        await self.transaction_status(transaction.transid)
+        return await self.transaction_status(transaction.transid)

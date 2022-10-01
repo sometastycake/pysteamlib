@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from steamlib.schemas import BaseSteamResponse
@@ -53,19 +55,15 @@ class PurshaseTransactionRequest(BaseModel):
 class PurshaseTransactionResponse(BaseSteamResponse):
     purchaseresultdetail: int
     paymentmethod: int
-    transid: str
-    transactionprovider: int
-    paymentmethodcountrycode: str
-    paypaltoken: str
-    packagewitherror: int
-    appcausingerror: int
-    pendingpurchasepaymentmethod: int
-    authorizationurl: str
+    transid: Optional[str]
+    transactionprovider: Optional[int]
+    paymentmethodcountrycode: Optional[str]
+    pendingpurchasepaymentmethod: Optional[int]
 
 
 class FinalizeTransactionResponse(BaseSteamResponse):
     purchaseresultdetail: int
-    bShowBRSpecificCreditCardError: bool
+    bShowBRSpecificCreditCardError: Optional[bool]
 
 
 class PurchaseReceipt(BaseModel):
