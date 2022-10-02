@@ -129,9 +129,7 @@ class SteamAccount:
             },
             raise_for_status=True,
         )
-        result = ProfileInfoResponse.parse_raw(response)
-        result.check_error()
-        return result
+        return ProfileInfoResponse.parse_raw(response)
 
     async def get_current_privacy(self) -> PrivacyInfo:
         """
@@ -163,9 +161,7 @@ class SteamAccount:
             },
             raise_for_status=True,
         )
-        result = PrivacyResponse.parse_raw(response)
-        result.check_error()
-        return result
+        return PrivacyResponse.parse_raw(response)
 
     async def revoke_api_key(self) -> None:
         """

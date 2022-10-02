@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 from pysteamauth.errors import check_steam_error
 
 
@@ -8,8 +8,11 @@ class BaseSteamResponse(BaseModel):
     success: int
     errmsg: Optional[str]
 
-    def check_error(self) -> None:
-        check_steam_error(
-            error=self.success,
-            error_msg=self.errmsg,
-        )
+    @root_validator
+    def _check_error(cls, values: Dict) -> Dict:
+        if values.get('success'):
+            check_steam_error(
+                error=values.get('success'),
+                error_msg=values.get('errmsg'),
+            )
+        return values

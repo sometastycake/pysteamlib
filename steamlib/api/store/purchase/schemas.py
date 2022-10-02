@@ -55,7 +55,7 @@ class PurshaseTransactionRequest(BaseModel):
 class PurshaseTransactionResponse(BaseSteamResponse):
     purchaseresultdetail: int
     paymentmethod: int
-    transid: Optional[str]
+    transid: str
     transactionprovider: Optional[int]
     paymentmethodcountrycode: Optional[str]
     pendingpurchasepaymentmethod: Optional[int]

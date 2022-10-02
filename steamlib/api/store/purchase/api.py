@@ -80,9 +80,7 @@ class PurchaseGame:
                 'X-Prototype-Version:': '1.7',
             },
         )
-        result = PurshaseTransactionResponse.parse_raw(response)
-        result.check_error()
-        return result
+        return PurshaseTransactionResponse.parse_raw(response)
 
     async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
         """
@@ -106,9 +104,7 @@ class PurchaseGame:
                 'Referer': 'https://store.steampowered.com/checkout/?purchasetype=self',
             },
         )
-        result = FinalizeTransactionResponse.parse_raw(response)
-        result.check_error()
-        return result
+        return FinalizeTransactionResponse.parse_raw(response)
 
     async def transaction_status(self, transid: str) -> TransactionStatusResponse:
         """
@@ -131,9 +127,7 @@ class PurchaseGame:
                 'X-Prototype-Version:': '1.7',
             },
         )
-        result = TransactionStatusResponse.parse_raw(response)
-        result.check_error()
-        return result
+        return TransactionStatusResponse.parse_raw(response)
 
     async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
         """
@@ -152,9 +146,7 @@ class PurchaseGame:
                 'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
             },
         )
-        result = FinalPriceResponse.parse_raw(response)
-        result.check_error()
-        return result
+        return FinalPriceResponse.parse_raw(response)
 
     async def purchase(self) -> TransactionStatusResponse:
         """
