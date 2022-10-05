@@ -1,137 +1,73 @@
 # Asynchronous python library for work with Steam
 
+[![pypi: package](https://img.shields.io/badge/pypi-0.0.1-blue)](https://pypi.org/project/pysteamlib/)
+[![Imports: isort](https://img.shields.io/badge/imports-isort-success)](https://pycqa.github.io/isort/)
+[![Linter: flake8](https://img.shields.io/badge/linter-flake8-success)](https://github.com/PyCQA/flake8)
+[![Mypy: checked](https://img.shields.io/badge/mypy-checked-success)](https://github.com/python/mypy)
+[![Python: versions](
+https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)]()
+
+
+## Install
+
+```bash
+pip install pysteamlib
+```
 
 ## Usage
 
-```
-steam = Steam()
+```python
+from typing import Dict
 
-# Authenticator data is using for calculating Steam Guard code and mobile confirmations
-# If the SG is disabled, then the authenticator data you can lower it
+from pysteamauth.auth import Steam
+from steamlib.api import SteamAPI
+from steamlib.api.account import PrivacyInfo
+from steamlib.api.account.schemas import ProfileInfo
+from steamlib.api.store.purchase import TransactionStatusResponse
+from steamlib.api.trade import Asset, JsonTradeoffer, Me, SendOfferRequest, SendOfferResponse, Them, TradeOfferParams
 
-authenticator = Authenticator(
-    shared_secret='shared_secret',
-    device_id='device_id',
-    identity_secret='identity_secret',
-)
 
-steam.add_account(
-    login='login',
-    details=AccountData(
-        password='password',
-        steamid=123456789,
-        authenticator=authenticator
+async def usage(steam: Steam) -> None:
+
+    if not await steam.is_authorized():
+        await steam.login_to_steam()
+
+    api = SteamAPI(steam)
+
+    # Store
+    purchase_status: TransactionStatusResponse = await api.store.purchase_game(appid='808080')
+
+    # Account
+    current_tradelink: str = await api.account.get_tradelink()
+    new_tradelink: str = await api.account.register_tradelink()
+    privacy_settings: PrivacyInfo = await api.account.get_current_privacy()
+    profile_info: ProfileInfo = await api.account.get_current_profile_info()
+    api_key: str = await api.account.register_api_key('example.com')
+
+    # Inventory
+    inventory: Dict = await api.inventory.get_inventory(appid='730', contextid=2)
+
+    # Trade
+    response: SendOfferResponse = await api.trade.send_offer(
+        request=SendOfferRequest(
+            partner=76561111111111111,
+            json_tradeoffer=JsonTradeoffer(
+                me=Me(
+                    assets=[Asset(appid='730', contextid='2', assetid='111111111111')]
+                ),
+                them=Them(
+                    assets=[Asset(appid='730', contextid='2', assetid='111111111111')],
+                ),
+            ),
+            sessionid=await steam.sessionid(),
+            trade_offer_create_params=TradeOfferParams(
+                trade_offer_access_token='token',
+            ),
+        ),
     )
-)
-await steam.login_all()
-
-# Or you can use
-await steam.login_to_steam('login')
-```
-
-
-## Steam account API
-
-```
-api = SteamAPI(steam)
-
-# Set account privacy settings
-result = await api.account.set_privacy(
-    settings=PrivacyInfo(
-        PrivacySettings=PrivacySettings(
-            PrivacyProfile=PrivacyLevel.Hidden,
-            PrivacyInventory=PrivacyLevel.Hidden,
-            PrivacyInventoryGifts=PrivacyLevel.Hidden,
-            PrivacyOwnedGames=PrivacyLevel.Hidden,
-            PrivacyPlaytime=PrivacyLevel.Hidden,
-            PrivacyFriendsList=PrivacyLevel.Hidden,
-        ),
-        eCommentPermission=CommentPermissionLevel.Hidden
-    ),
-    login=login,
-)
-
-# Get nickname history
-history = await api.account.get_nickname_history(login)
-
-# Get current profile info
-profile = await api.account.get_current_profile_info(login)
-
-# Get current privacy settings
-privacy = await api.account.get_current_privacy(login)
-
-# Revoke api key
-await api.account.revoke_api_key(login)
-
-# Register api key
-key = await api.account.register_api_key(domain, login)
-
-# Register tradelink
-tradelink = await api.account.register_tradelink(login)
-
-# Set avatar
-await api.account.upload_avatar('avatar.jpeg', login)
-```
-
-
-## Example sending of exchange
-
-```
-api = SteamAPI(steam)
-
-# Exchange request scheme
-request = SendOfferRequest(
-    partner=123456789,
-    json_tradeoffer=JsonTradeoffer(
-        me=Me(
-            assets=[
-                Asset(appid='730', contextid='6', assetid='123456789'),
-            ],
-        ),
-        them=Them(
-            assets=[
-                Asset(appid='730', contextid='2', assetid='123456789'),
-            ],
-        ),
-    ),
-    sessionid=await steam.sessionid(login),
-    trade_offer_create_params=TradeOfferParams(
-        trade_offer_access_token='token'
-    ),
-)
-
-# Sending offer
-response = await api.trade.send_offer(request, login)
-
-# Confirmation offer in mobile app
-if response.needs_mobile_confirmation:
-    await api.trade.mobile_confirm_by_tradeofferid(response.tradeofferid, login)
     
-# Cancelling offer
-await api.trade.cancel_offer(response.tradeofferid, login)
-```
-
-## Cookie storage
-
-Library uses default cookie storage `BaseCookieStorage`, which stores Steam cookies in application memory.
-But you can write own cookie storage. For example, redis storage:
-
-```
-class RedisCookieStorage(CookieStorageAbstract):
-
-    redis = Redis()
-
-    async def get(self, login: str) -> Dict:
-        cookies = await self.redis.get(login)
-        if not cookies:
-            return {}
-        return json.loads(cookies)
-
-    async def set(self, login: str, cookies: Dict):
-        await self.redis.set(login, json.dumps(cookies))
-
-    async def clear(self, login: str) -> None:
-        await self.redis.delete(*[login])
-
-steam = Steam(cookie_storage=RedisCookieStorage)
+    if response.needs_mobile_confirmation:
+        confirmation_result: bool = await api.trade.mobile_confirm_by_tradeofferid(
+            tradeofferid=response.tradeofferid,
+        )
 ```
