@@ -58,9 +58,9 @@ class SendOfferRequest(BaseModel):
             raise RuntimeError('Empty trade offer')
         return json_tradeoffer
 
-    def tradelink(self) -> str:
+    def tradelink(self, partner_id: int) -> str:
         params = {
-            'partner': str(self.partner - 76561197960265728),
+            'partner': str(partner_id),
             'token': self.trade_offer_create_params.trade_offer_access_token,
         }
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))
