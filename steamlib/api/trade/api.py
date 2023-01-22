@@ -15,9 +15,6 @@ class SteamTrade:
         self.steam = steam
 
     async def send_offer(self, request: SendOfferRequest) -> SendOfferResponse:
-        """
-        Send offer to Steam.
-        """
         if not request.sessionid:
             request.sessionid = await self.steam.sessionid()
         response: str = await self.steam.request(
@@ -34,9 +31,6 @@ class SteamTrade:
         return OfferResponseHandler(response).send_offer()
 
     async def cancel_offer(self, tradeofferid: int) -> None:
-        """
-        Cancel offer.
-        """
         response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/cancel',
@@ -53,9 +47,6 @@ class SteamTrade:
         return OfferResponseHandler(response).cancel_offer()
 
     async def decline_offer(self, tradeofferid: int) -> None:
-        """
-        Decline offer.
-        """
         response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/decline',
@@ -72,9 +63,6 @@ class SteamTrade:
         return OfferResponseHandler(response).decline_offer()
 
     async def accept_offer(self, tradeofferid: int, partner_steamid: int) -> AcceptOfferResponse:
-        """
-        Accept offer.
-        """
         response: str = await self.steam.request(
             method='POST',
             url=f'https://steamcommunity.com/tradeoffer/{tradeofferid}/accept',
@@ -95,9 +83,6 @@ class SteamTrade:
         return OfferResponseHandler(response).accept_offer()
 
     def _parse_mobile_confirmations_response(self, response: str) -> List[MobileConfirmation]:
-        """
-        Parse mobile confirmations response.
-        """
         page: HtmlElement = document_fromstring(response)
         raw_confirmations: List[HtmlElement] = page.cssselect('#mobileconf_list > .mobileconf_list_entry')
         if not raw_confirmations:
@@ -112,9 +97,6 @@ class SteamTrade:
         return confirmations
 
     async def get_mobile_confirmations(self) -> List[MobileConfirmation]:
-        """
-        Get mobile confirmations.
-        """
         if not self.steam.authenticator:
             raise RuntimeError('Authenticator not specified')
         server_time: int = await self.steam.get_server_time()
@@ -150,9 +132,6 @@ class SteamTrade:
         return self._parse_mobile_confirmations_response(response)
 
     async def mobile_confirm(self, confirmation: MobileConfirmation) -> bool:
-        """
-        Mobile confirm.
-        """
         if not self.steam.authenticator:
             raise RuntimeError('Authenticator not specified')
         server_time: int = await self.steam.get_server_time()
@@ -182,9 +161,6 @@ class SteamTrade:
         return json.loads(response)['success']
 
     async def mobile_confirm_by_tradeofferid(self, tradeofferid: int) -> bool:
-        """
-        Mobile confirm by tradeofferid.
-        """
         confirmations: List[MobileConfirmation] = await self.get_mobile_confirmations()
         for confirmation in confirmations:
             if confirmation.tradeofferid == tradeofferid:

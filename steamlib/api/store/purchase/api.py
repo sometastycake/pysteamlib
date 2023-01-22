@@ -20,22 +20,12 @@ class PurchaseGame:
         self.steam = steam
 
     async def game_page(self) -> HtmlElement:
-        """
-        Get game page.
-
-        :return: Parsed html page.
-        """
         response: str = await self.steam.request(
             url=f'https://store.steampowered.com/app/{self.appid}/',
         )
         return document_fromstring(response)
 
     async def get_data_for_cart(self) -> Dict:
-        """
-        Get data for cart.
-
-        :return: Data for game adding to cart.
-        """
         page: HtmlElement = await self.game_page()
         result = {}
         for param in ('snr', 'originating_snr', 'action', 'sessionid', 'subid'):
@@ -43,11 +33,6 @@ class PurchaseGame:
         return result
 
     async def add_to_cart(self) -> int:
-        """
-        Add game to cart.
-
-        :return: Cart number.
-        """
         cart_data = await self.get_data_for_cart()
         response: str = await self.steam.request(
             method='POST',
@@ -63,11 +48,6 @@ class PurchaseGame:
         return int(page.cssselect('.cart_area_body input[name="cart"]')[0].attrib['value'])
 
     async def init_transaction(self, request: PurshaseTransactionRequest) -> PurshaseTransactionResponse:
-        """
-        Init purshase transaction.
-
-        :return: Transaction data.
-        """
         response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/inittransaction/',
@@ -83,11 +63,6 @@ class PurchaseGame:
         return PurshaseTransactionResponse.parse_raw(response)
 
     async def finalize_transaction(self, transid: str) -> FinalizeTransactionResponse:
-        """
-        Finalize transaction.
-
-        :return: Finalize transaction status.
-        """
         response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/finalizetransaction/',
@@ -107,11 +82,6 @@ class PurchaseGame:
         return FinalizeTransactionResponse.parse_raw(response)
 
     async def transaction_status(self, transid: str) -> TransactionStatusResponse:
-        """
-        Check transaction status.
-
-        :return: Transaction status.
-        """
         response: str = await self.steam.request(
             method='POST',
             url='https://store.steampowered.com/checkout/transactionstatus/',
@@ -130,11 +100,6 @@ class PurchaseGame:
         return TransactionStatusResponse.parse_raw(response)
 
     async def final_price(self, request: FinalPriceRequest) -> FinalPriceResponse:
-        """
-        Steam request "get_final_price".
-
-        :return: Final price status.
-        """
         response: str = await self.steam.request(
             url='https://store.steampowered.com/checkout/getfinalprice/',
             method='GET',
@@ -149,9 +114,6 @@ class PurchaseGame:
         return FinalPriceResponse.parse_raw(response)
 
     async def purchase(self) -> TransactionStatusResponse:
-        """
-        Purshase game.
-        """
         cart_number: int = await self.add_to_cart()
         transaction: PurshaseTransactionResponse = await self.init_transaction(
             request=PurshaseTransactionRequest(

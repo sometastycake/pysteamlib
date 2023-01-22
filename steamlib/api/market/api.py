@@ -9,9 +9,6 @@ class SteamMarket:
         self.steam = steam
 
     async def is_market_available(self) -> bool:
-        """
-        Is market available.
-        """
         response: str = await self.steam.request(
             url='https://steamcommunity.com/market/',
             headers={
@@ -22,13 +19,9 @@ class SteamMarket:
                 'Steam_Language': 'english',
             },
         )
-
         return 'The Market is unavailable for the following reason(s):' not in response
 
     async def price_history(self, appid: str, market_hash_name: str) -> PriceHistoryResponse:
-        """
-        Price history.
-        """
         response: str = await self.steam.request(
             url='https://steamcommunity.com/market/pricehistory/',
             params={
@@ -38,5 +31,4 @@ class SteamMarket:
                 'market_hash_name': market_hash_name,
             },
         )
-
         return PriceHistoryResponse.parse_raw(response)
