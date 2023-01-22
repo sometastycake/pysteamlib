@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.0.3 (2023-01-22)](https://github.com/sometastycake/pysteamlib/releases/tag/v0.0.3)
+
+- Upgraded library version (pysteamauth)
+- Removed docstrings
+- Removed examples
+- Update README.md
+
 ## [v0.0.2 (2022-11-15)](https://github.com/sometastycake/pysteamlib/releases/tag/v0.0.2)
 
 - Upgraded library version (pysteamauth)
