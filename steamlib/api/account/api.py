@@ -234,7 +234,7 @@ class SteamAccount:
         )
 
         params = {
-            'partner': self.steam.steamid - 76561197960265728,
+            'partner': self.steam.partner_id,
             'token': token.replace('"', ''),
         }
         return str(URL('https://steamcommunity.com/tradeoffer/new/').with_query(params))

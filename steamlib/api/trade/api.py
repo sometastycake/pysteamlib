@@ -28,7 +28,7 @@ class SteamTrade:
                 'Accept': '*/*',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Origin': 'https://steamcommunity.com',
-                'Referer': request.tradelink(),
+                'Referer': request.tradelink(self.steam.partner_id),
             },
         )
         return OfferResponseHandler(response).send_offer()
