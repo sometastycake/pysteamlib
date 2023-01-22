@@ -97,8 +97,6 @@ class SteamTrade:
         return confirmations
 
     async def get_mobile_confirmations(self) -> List[MobileConfirmation]:
-        if not self.steam.authenticator:
-            raise RuntimeError('Authenticator not specified')
         server_time: int = await self.steam.get_server_time()
         confirmation_hash: str = self.steam.get_confirmation_hash(
             server_time=server_time,
@@ -113,7 +111,7 @@ class SteamTrade:
                 'Steam_Language': 'english',
             },
             params={
-                'p': self.steam.authenticator.device_id,
+                'p': self.steam.device_id,
                 'a': str(self.steam.steamid),
                 'k': confirmation_hash,
                 't': server_time,
@@ -122,18 +120,14 @@ class SteamTrade:
             },
         )
         if '<div>Invalid authenticator</div>' in response:
-            raise InvalidAuthenticatorError(
-                'Invalid authenticator',
-            )
+            raise InvalidAuthenticatorError('Invalid authenticator')
+
         if 'There was a problem loading the confirmations page' in response:
-            raise InvalidConfirmationPageError(
-                'Invalid confirmation page',
-            )
+            raise InvalidConfirmationPageError('Invalid confirmation page')
+
         return self._parse_mobile_confirmations_response(response)
 
     async def mobile_confirm(self, confirmation: MobileConfirmation) -> bool:
-        if not self.steam.authenticator:
-            raise RuntimeError('Authenticator not specified')
         server_time: int = await self.steam.get_server_time()
         confirmation_hash: str = self.steam.get_confirmation_hash(
             server_time=server_time,
@@ -148,7 +142,7 @@ class SteamTrade:
             },
             params={
                 'op': 'allow',
-                'p': self.steam.authenticator.device_id,
+                'p': self.steam.device_id,
                 'a': str(self.steam.steamid),
                 'k': confirmation_hash,
                 't': server_time,
