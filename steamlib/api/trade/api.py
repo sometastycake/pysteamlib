@@ -1,12 +1,16 @@
 import json
-from typing import List
 
-from lxml.html import HtmlElement, document_fromstring
 from pysteamauth.auth import Steam
 
-from .exceptions import InvalidAuthenticatorError, InvalidConfirmationPageError, NotFoundMobileConfirmationError
+from .exceptions import NotFoundMobileConfirmationError
 from .handlers import OfferResponseHandler
-from .schemas import AcceptOfferResponse, MobileConfirmation, SendOfferRequest, SendOfferResponse
+from .schemas import (
+    AcceptOfferResponse,
+    MobileConfirmation,
+    MobileConfirmationResponse,
+    SendOfferRequest,
+    SendOfferResponse,
+)
 
 
 class SteamTrade:
@@ -82,27 +86,13 @@ class SteamTrade:
         )
         return OfferResponseHandler(response).accept_offer()
 
-    def _parse_mobile_confirmations_response(self, response: str) -> List[MobileConfirmation]:
-        page: HtmlElement = document_fromstring(response)
-        raw_confirmations: List[HtmlElement] = page.cssselect('#mobileconf_list > .mobileconf_list_entry')
-        if not raw_confirmations:
-            return []
-        confirmations = []
-        for confirmation in raw_confirmations:
-            confirmations.append(MobileConfirmation(
-                confirmation_id=int(confirmation.attrib['data-confid']),
-                confirmation_key=int(confirmation.attrib['data-key']),
-                tradeofferid=int(confirmation.attrib['data-creator']),
-            ))
-        return confirmations
-
-    async def get_mobile_confirmations(self) -> List[MobileConfirmation]:
+    async def get_mobile_confirmations(self) -> MobileConfirmationResponse:
         server_time: int = await self.steam.get_server_time()
         confirmation_hash: str = self.steam.get_confirmation_hash(
             server_time=server_time,
         )
         response: str = await self.steam.request(
-            url='https://steamcommunity.com/mobileconf/conf',
+            url='https://steamcommunity.com/mobileconf/getlist',
             method='GET',
             cookies={
                 'mobileClient': 'ios',
@@ -115,17 +105,11 @@ class SteamTrade:
                 'a': str(self.steam.steamid),
                 'k': confirmation_hash,
                 't': server_time,
-                'm': 'ios',
+                'm': 'react',
                 'tag': 'conf',
             },
         )
-        if '<div>Invalid authenticator</div>' in response:
-            raise InvalidAuthenticatorError('Invalid authenticator')
-
-        if 'There was a problem loading the confirmations page' in response:
-            raise InvalidConfirmationPageError('Invalid confirmation page')
-
-        return self._parse_mobile_confirmations_response(response)
+        return MobileConfirmationResponse.parse_raw(response)
 
     async def mobile_confirm(self, confirmation: MobileConfirmation) -> bool:
         server_time: int = await self.steam.get_server_time()
@@ -146,7 +130,7 @@ class SteamTrade:
                 'a': str(self.steam.steamid),
                 'k': confirmation_hash,
                 't': server_time,
-                'm': 'ios',
+                'm': 'react',
                 'tag': 'allow',
                 'cid': confirmation.confirmation_id,
                 'ck': confirmation.confirmation_key,
@@ -154,9 +138,12 @@ class SteamTrade:
         )
         return json.loads(response)['success']
 
-    async def mobile_confirm_by_tradeofferid(self, tradeofferid: int) -> bool:
-        confirmations: List[MobileConfirmation] = await self.get_mobile_confirmations()
-        for confirmation in confirmations:
-            if confirmation.tradeofferid == tradeofferid:
+    async def mobile_confirm_by_creator_id(self, creator_id: int) -> bool:
+        """
+        For trade offers creator_id is trade offer id
+        """
+        confirmations: MobileConfirmationResponse = await self.get_mobile_confirmations()
+        for confirmation in confirmations.conf:
+            if confirmation.creator_id == creator_id:
                 return await self.mobile_confirm(confirmation)
-        raise NotFoundMobileConfirmationError(f'Not found confirmation for {tradeofferid}')
+        raise NotFoundMobileConfirmationError(f'Not found confirmation for {creator_id}')

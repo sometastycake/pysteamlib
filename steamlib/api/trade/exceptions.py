@@ -32,11 +32,3 @@ class MobileConfirmationError(Exception):
 
 class NotFoundMobileConfirmationError(MobileConfirmationError):
     """No offer found pending mobile confirmation."""
-
-
-class InvalidAuthenticatorError(MobileConfirmationError):
-    """Invalid authenticator."""
-
-
-class InvalidConfirmationPageError(MobileConfirmationError):
-    """Invalid confirmation page."""

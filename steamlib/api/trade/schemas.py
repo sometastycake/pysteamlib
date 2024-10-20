@@ -87,6 +87,23 @@ class AcceptOfferResponse(BaseModel):
 
 
 class MobileConfirmation(BaseModel):
-    confirmation_id: int
-    confirmation_key: int
-    tradeofferid: int
+    type: int
+    type_name: str
+    confirmation_id: int = Field(alias='id')
+    creator_id: int
+    confirmation_key: int = Field(alias='nonce')
+    creation_time: int
+    cancel: str
+    accept: str
+    icon: str
+    multi: bool
+    headline: Optional[str] = None
+    summary: List[str]
+
+    class Config:
+        allow_population_by_field_name = True
+
+
+class MobileConfirmationResponse(BaseModel):
+    success: bool
+    conf: List[MobileConfirmation]
