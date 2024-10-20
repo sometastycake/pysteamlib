@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.1.0 (2024-10-21)](https://github.com/sometastycake/pysteamlib/releases/tag/v0.1.0)
+
+- Bump versions of dependencies
+- Fix get_mobile_confirmations and mobile_confirm
+
 ## [v0.0.3 (2023-01-22)](https://github.com/sometastycake/pysteamlib/releases/tag/v0.0.3)
 
 - Upgraded library version (pysteamauth)
