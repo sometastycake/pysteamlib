@@ -22,6 +22,7 @@ class SteamInventory:
             },
             headers={
                 'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )

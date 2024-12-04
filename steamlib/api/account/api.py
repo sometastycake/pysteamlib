@@ -37,6 +37,7 @@ class SteamAccount:
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/info',
             headers={
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             cookies={
                 'Steam_Language': 'english',
@@ -55,6 +56,7 @@ class SteamAccount:
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/',
                 'Origin': 'https://steamcommunity.com',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -73,6 +75,7 @@ class SteamAccount:
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 'X-Requested-With:': 'XMLHttpRequest',
                 'Origin': 'https://steamcommunity.com',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -111,6 +114,7 @@ class SteamAccount:
                 'Accept': 'application/json, text/plain, */*',
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/info',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -137,6 +141,7 @@ class SteamAccount:
                 'Accept': 'application/json, text/plain, */*',
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/settings',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -154,6 +159,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -171,6 +177,7 @@ class SteamAccount:
             headers={
                 'Origin': 'https://steamcommunity.com',
                 'Referer': 'https://steamcommunity.com/dev/apikey',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             cookies={
                 'Steam_Language': 'english',
@@ -199,6 +206,7 @@ class SteamAccount:
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/privacy',
                 'X-Requested-With': 'XMLHttpRequest',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -228,6 +236,7 @@ class SteamAccount:
             headers={
                 'Origin': 'https://steamcommunity.com',
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/edit/avatar',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             raise_for_status=True,
         )
@@ -238,6 +247,7 @@ class SteamAccount:
             url=f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/privacy',
             headers={
                 'Referer': f'https://steamcommunity.com/profiles/{self.steam.steamid}/tradeoffers/',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
             cookies={
                 'Steam_Language': 'english',

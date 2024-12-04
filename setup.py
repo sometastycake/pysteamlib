@@ -11,11 +11,10 @@ requirements = [
 
 setup(
     name='pysteamlib',
-    version='0.1.0',
+    version='1.0.0',
     url='https://github.com/sometastycake/pysteamlib',
     license='MIT',
     author='Mike M',
-    author_email='stopthisworldplease@outlook.com',
     description='Python Steam library',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',

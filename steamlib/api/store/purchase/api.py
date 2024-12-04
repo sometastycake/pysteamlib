@@ -42,6 +42,7 @@ class PurchaseGame:
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Origin': 'https://store.steampowered.com',
                 'Referer': f'https://store.steampowered.com/app/{self.appid}',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
         )
         page: HtmlElement = document_fromstring(response)
@@ -58,6 +59,7 @@ class PurchaseGame:
                 'Origin': 'https://store.steampowered.com',
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-Prototype-Version:': '1.7',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
         )
         return PurshaseTransactionResponse.parse_raw(response)
@@ -77,6 +79,7 @@ class PurchaseGame:
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-Prototype-Version:': '1.7',
                 'Referer': 'https://store.steampowered.com/checkout/?purchasetype=self',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
         )
         return FinalizeTransactionResponse.parse_raw(response)
@@ -95,6 +98,7 @@ class PurchaseGame:
                 'Origin': 'https://store.steampowered.com',
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-Prototype-Version:': '1.7',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
         )
         return TransactionStatusResponse.parse_raw(response)
@@ -109,6 +113,7 @@ class PurchaseGame:
                 'X-Prototype-Version': '1.7',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'text/javascript, text/html, application/xml, text/xml, */*',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:1.9.5.20) Gecko/2812-12-10 04:56:28 Firefox/3.8',
             },
         )
         return FinalPriceResponse.parse_raw(response)
