@@ -1,29 +1,8 @@
+from typing import Optional
+
+
 class SendOfferError(Exception):
     """Error sending exchange."""
-
-
-class SteamServerDownError(SendOfferError):
-    """Steam servers may be down."""
-
-
-class TradeOffersLimitError(SendOfferError):
-    """Trade offers limit."""
-
-
-class AccountOverflowError(SendOfferError):
-    """Account overflow."""
-
-
-class TradeBanError(SendOfferError):
-    """Account have a trade ban."""
-
-
-class ProfileSettingsError(SendOfferError):
-    """Incorrect profile settings."""
-
-
-class TradelinkError(SendOfferError):
-    """Tradelink may be incorrect."""
 
 
 class MobileConfirmationError(Exception):
@@ -32,3 +11,14 @@ class MobileConfirmationError(Exception):
 
 class NotFoundMobileConfirmationError(MobileConfirmationError):
     """No offer found pending mobile confirmation."""
+
+
+class GetConfirmationsError(MobileConfirmationError):
+    """Get confirmation error."""
+
+    def __init__(self, message: Optional[str], detail: Optional[str]):
+        self.message = message
+        self.detail = detail
+
+    def __str__(self) -> str:
+        return f'Get mobile confirmations error message={self.message} detail={self.detail}'
